@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Expo APK
+Expo-Go-57.0.3.apk
+
 # debug
 npm-debug.*
 yarn-debug.*
@@ -41,3 +44,5 @@ example
 # generated native folders
 /ios
 /android
+
+*.apk
