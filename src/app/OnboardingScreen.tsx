@@ -12,6 +12,7 @@ import {
     View,
 } from "react-native";
 import { router } from "expo-router";
+import PrimaryButton from "@/components/Button/PrimaryButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -145,9 +146,9 @@ export default function OnboardingScreen({
         ]).start();
         onFinish?.();
         // Directly open Login
-       
-            router.replace("/login");
-      
+
+        router.push("/login");
+
     };
 
     const handleSkip = () => {
@@ -257,14 +258,18 @@ export default function OnboardingScreen({
                         },
                     ]}
                 >
-                    <Pressable
+                    <PrimaryButton
+                        title="Get Started"
                         onPress={handleGetStarted}
                         style={styles.getStartedButton}
-                    >
-                        <Text style={styles.getStartedText}>
-                            Get Started
-                        </Text>
-                    </Pressable>
+                        icon={
+                            <Image
+                                source={require("../../assets/images/paw-white.png")}
+                                resizeMode="contain"
+                                style={styles.buttonPaw}
+                            />
+                        }
+                    />
                 </Animated.View>
 
                 <Pressable
@@ -327,15 +332,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
-    title: {
-        fontSize: Math.min(width * 0.55, 26),
-        lineHeight: Math.min(width * 0.65, 36),
-        fontWeight: "900",
-        color: "#FF7A00",
-        textAlign: "center",
-        letterSpacing: 0.3,
-    },
-
+   title: {
+    fontSize: 36,
+    lineHeight: 44,
+    fontFamily: "Fredoka_600SemiBold",
+    color: "#FF7F00",
+    textAlign: "center",
+    letterSpacing: 0,
+},
     descriptionContainer: {
         width: "88%",
         height: 75,
@@ -346,6 +350,7 @@ const styles = StyleSheet.create({
 
     description: {
         fontSize: Math.min(width * 0.32, 16),
+        fontFamily: "Nunito_700Bold",
         lineHeight: 19,
         fontWeight: "500",
         color: "#292929",
@@ -371,7 +376,20 @@ const styles = StyleSheet.create({
         width: width * 0.88,
         height: height * 0.38,
     },
+    buttonPaw: {
+        position: "absolute",
 
+
+        top: "-35%",
+
+        width: 40,
+        height: 40,
+
+        marginTop: -11.5,
+        marginLeft: 20,
+
+        zIndex: 10,
+    },
     /*
      * FIXED BOTTOM AREA
      */
@@ -395,41 +413,34 @@ const styles = StyleSheet.create({
 
     getStartedButton: {
         width: "100%",
-        height: 57,
-        borderRadius: 15,
+        minHeight: 50,
 
-        // apna existing button color SAME rakho
-        backgroundColor: "#FF760D",
+        backgroundColor: "#FF7A00",
+        borderRadius: 10,
 
         alignItems: "center",
         justifyContent: "center",
 
-        // Screenshot jaisa soft shadow
-        shadowColor: "#FF760D",
+        shadowColor: "#FF7A00",
         shadowOffset: {
             width: 0,
-            height: 5,
+            height: 14,
         },
         shadowOpacity: 0.20,
-        shadowRadius: 7,
+        shadowRadius: 15,
 
-        elevation: 3,
+        elevation: 5,
     },
 
     getStartedButtonPressed: {
-        transform: [
-            {
-                scale: 0.985,
-            },
-        ],
+        transform: [{ translateY: 2 }],
     },
 
     getStartedText: {
         color: "#FFFFFF",
         fontSize: 16,
-        fontWeight: "700",
+        fontWeight: "800",
     },
-
     skipButton: {
         marginTop: 8,
         marginBottom: 20,

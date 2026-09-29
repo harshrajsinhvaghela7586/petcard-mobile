@@ -24,6 +24,7 @@ import {
 
 import { FontAwesome } from "@expo/vector-icons";
 import LanguageSelector from "@/components/LanguageSelector/LanguageSelector";
+import PrimaryButton from "@/components/Button/PrimaryButton";
 
 type LanguageCode =
     | "en"
@@ -194,34 +195,17 @@ export default function LoginScreen() {
     const t = translations[language];
 
     const handleLogin = async () => {
-        // if (!email.trim() || !password.trim()) {
-        //     return;
-        // }
+    try {
+        setLoading(true);
 
-        try {
-            setLoading(true);
+        router.push("/PetTypeScreen");
 
-            /*
-             * Existing login API/store logic yahan connect karna hai.
-             *
-             * Example:
-             *
-             * await login({
-             *   email: email.trim(),
-             *   password,
-             * });
-             *
-             * Successful login ke baad:
-             *
-             * router.replace("/(tabs)/home");
-             */
-
-        } catch (error) {
-            console.log("Login error:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (error) {
+        console.log("Login error:", error);
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -441,44 +425,18 @@ export default function LoginScreen() {
                             SIGN IN
                         ================================= */}
 
-                        <Pressable
-                            onPress={handleLogin}
-                            disabled={loading}
-                            style={({ pressed }) => [
-                                styles.signInButton,
-
-                                pressed &&
-                                    styles.signInButtonPressed,
-
-                                loading &&
-                                    styles.signInButtonDisabled,
-                            ]}
-                        >
-                            {loading ? (
-                                <ActivityIndicator
-                                    size="small"
-                                    color="#FFFFFF"
-                                />
-                            ) : (
-                                <>
-                                    <Text
-                                        style={
-                                            styles.signInText
-                                        }
-                                    >
-                                        {t.signIn}
-                                    </Text>
-
-                                    <Image
-                                        source={require("../../../assets/images/paw-white.png")}
-                                        style={
-                                            styles.btnPaw
-                                        }
-                                        resizeMode="contain"
-                                    />
-                                </>
-                            )}
-                        </Pressable>
+                      <PrimaryButton
+    title={loading ? "Loading..." : t.signIn}
+    onPress={handleLogin}
+    disabled={loading}
+   icon={
+                                                     <Image
+                                                         source={require("../../../assets/images/paw-white.png")}
+                                                         resizeMode="contain"
+                                                         style={styles.buttonPaw}
+                                                     />
+                                                 }
+/>
 
                         {/* ================================
                             DIVIDER
@@ -697,6 +655,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "600",
         textAlign: "center",
+    },
+ buttonPaw: {
+        position: "absolute",
+
+        
+        top: "-30%",
+
+        width: 40,
+        height: 40,
+
+        marginTop: -11.5,
+        marginLeft:20,
+
+        zIndex: 10,
     },
 
     inactiveToggleText: {

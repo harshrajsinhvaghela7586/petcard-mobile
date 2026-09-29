@@ -24,6 +24,7 @@ import {
 } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import LanguageSelector from "@/components/LanguageSelector/LanguageSelector";
+import PrimaryButton from "@/components/Button/PrimaryButton";
 
 
 type LanguageCode = "en" | "hi" | "es" | "fr" | "de" | "nl" | "it";
@@ -663,42 +664,19 @@ export default function SignupScreen() {
                 CREATE ACCOUNT
             ================================= */}
 
-                        <Pressable
-                            onPress={handleSignup}
-                            disabled={loading}
-                            style={({ pressed }) => [
-                                styles.createButton,
-                                pressed &&
-                                styles.createButtonPressed,
-                                loading &&
-                                styles.createButtonDisabled,
-                            ]}
-                        >
-                            {loading ? (
-                                <ActivityIndicator
-                                    size="small"
-                                    color="#FFFFFF"
-                                />
-                            ) : (
-                                <>
-                                    <Text
-                                        style={
-                                            styles.createButtonText
-                                        }
-                                    >
-                                        {t.createAccount}
-                                    </Text>
-
-
-                                    <Image
-                                        source={require("../../../assets/images/paw-white.png")}
-                                        style={styles.btnPaw}
-                                        resizeMode="contain"
-                                    />
-
-                                </>
-                            )}
-                        </Pressable>
+                       <PrimaryButton
+    title={t.createAccount}
+    onPress={handleSignup}
+    disabled={loading}
+   icon={
+                                                     <Image
+                                                         source={require("../../../assets/images/paw-white.png")}
+                                                         resizeMode="contain"
+                                                         style={styles.buttonPaw}
+                                                     />
+                                                 }
+   
+/>
 
                         {/* ================================
                 OR
@@ -900,7 +878,20 @@ const styles = StyleSheet.create({
         padding: 2,
         marginBottom: 18,
     },
+ buttonPaw: {
+        position: "absolute",
 
+        
+        top: "-30%",
+
+        width: 40,
+        height: 40,
+
+        marginTop: -11.5,
+        marginLeft:20,
+
+        zIndex: 10,
+    },
     toggleItem: {
         flex: 1,
         justifyContent: "center",
@@ -1055,13 +1046,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
 
-    buttonPaw: {
-        position: "absolute",
-        right: 13,
-        color: "rgba(255,255,255,0.55)",
-        fontSize: 11,
-        letterSpacing: 1,
-    },
 
     /* ================================
        DIVIDER
