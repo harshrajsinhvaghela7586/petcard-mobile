@@ -1,4 +1,9 @@
+
 import React, { useEffect, useRef, useState } from "react";
+import { useFonts, Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
+import {
+    Nunito_700Bold,
+} from "@expo-google-fonts/nunito";
 import {
     Animated,
     Dimensions,
@@ -32,6 +37,7 @@ const DESIGN_TOP =
 interface SplashScreenProps {
     onFinish?: () => void;
 }
+
 
 type PawIndex = -1 | 0 | 1 | 2 | 3;
 
@@ -68,6 +74,14 @@ function Paw({
         };
     }, [active, orangeOpacity]);
 
+
+    const [fontsLoaded] = useFonts({
+        Fredoka_600SemiBold,
+        Nunito_700Bold,
+    });
+    if (!fontsLoaded) {
+        return null;
+    }
     return (
         <View
             pointerEvents="none"
@@ -440,7 +454,7 @@ export default function SplashScreen({
 
         addTimer(() => {
             setActivePaw(1);
-        }, FRAME_3_TIME + 950);
+        }, FRAME_3_TIME+100);
 
         /* =================================================
            FRAME 5
@@ -450,7 +464,7 @@ export default function SplashScreen({
 
         addTimer(() => {
             setActivePaw(2);
-        }, FRAME_3_TIME + 1900);
+        }, FRAME_3_TIME + 600);
 
         /* =================================================
            FRAME 6
@@ -460,7 +474,7 @@ export default function SplashScreen({
 
         addTimer(() => {
             setActivePaw(3);
-        }, FRAME_3_TIME + 2850);
+        }, FRAME_3_TIME + 1200);
 
         /* =================================================
            EXIT
@@ -475,7 +489,6 @@ export default function SplashScreen({
                     duration: 350,
                     useNativeDriver: true,
                 }),
-
                 Animated.timing(screenScale, {
                     toValue: 1.02,
                     duration: 350,
@@ -483,10 +496,9 @@ export default function SplashScreen({
                 }),
             ]).start(({ finished }) => {
                 if (!finished) return;
-
                 onFinish?.();
             });
-        }, FRAME_3_TIME + 2850 + 1200);
+        }, FRAME_3_TIME + 1200);
 
         /* =================================================
            CLEANUP
@@ -846,7 +858,7 @@ const styles = StyleSheet.create({
          * Absolute positioning prevents the icon
          * scaling from creating extra gaps.
          */
-        marginTop: 32,
+        marginTop: 48,
 
         alignItems: "center",
 
@@ -863,29 +875,21 @@ const styles = StyleSheet.create({
     },
 
     petText: {
-        fontSize: Math.min(
-            width * 0.105,
-            48
-        ),
-
-        fontWeight: "900",
-
+        fontFamily: "Fredoka_600SemiBold",
+        fontSize: Math.min(width * 0.105, 48),
+        fontWeight: "600",
         color: "#1B1B1B",
-
-        letterSpacing: -0.8,
+        letterSpacing: 0.5,
+        lineHeight: Math.min(width * 0.105, 48),
     },
 
     cardText: {
-        fontSize: Math.min(
-            width * 0.105,
-            48
-        ),
-
-        fontWeight: "900",
-
+        fontFamily: "Fredoka_600SemiBold",
+        fontSize: Math.min(width * 0.105, 48),
+        fontWeight: "600",
         color: "#FF7F00",
-
-        letterSpacing: -0.8,
+        letterSpacing: 0.5,
+        lineHeight: Math.min(width * 0.105, 48),
     },
 
     taglineContainer: {
@@ -917,6 +921,8 @@ const styles = StyleSheet.create({
     taglineText: {
         marginHorizontal: 5,
 
+        fontFamily: "Nunito_700Bold",
+
         fontSize: Math.min(
             width * 0.024,
             9.5
@@ -930,7 +936,6 @@ const styles = StyleSheet.create({
 
         textAlign: "center",
     },
-
     /* =====================================================
        WAVE
     ===================================================== */
