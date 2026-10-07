@@ -30,6 +30,34 @@ const SCALE = Math.min(
     height / DESIGN_HEIGHT
 );
 
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, gap,
+ * icon size...) is multiplied by the same scale factor, so the
+ * screen looks like the design (393 x 852) on every device.
+ *
+ * - Small phones -> everything shrinks proportionally
+ * - Big phones   -> capped at 1.3 so nothing looks oversized
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+/*
+ * Photo circles position
+ *
+ * Earlier: left "19%" / right "16%" of screen width with a fixed
+ * 148px circle, so on small screens the circles stopped overlapping
+ * like in the design. Now the same design coordinates
+ * (74.7px / 62.9px on 393 wide) are scaled along with the circle size.
+ */
+const CONTENT_OFFSET_X =
+    (width - DESIGN_WIDTH * UI_SCALE) / 2;
+
+const PHOTO_LEFT = CONTENT_OFFSET_X + s(74.7);
+const PHOTO_RIGHT = CONTENT_OFFSET_X + s(62.9);
+
 export default function CoGuardianScreen() {
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
@@ -167,11 +195,17 @@ export default function CoGuardianScreen() {
 
                 <View style={styles.header}>
 
-                    <Text style={styles.title}>
+                    <Text
+                        style={styles.title}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Add a Co-Guardian
                     </Text>
 
-                    <Text style={styles.subtitle}>
+                    <Text
+                        style={styles.subtitle}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Share care and memories with someone
                         you trust.
                     </Text>
@@ -203,11 +237,14 @@ export default function CoGuardianScreen() {
                             <View style={styles.emptyPhotoContent}>
                                 <Ionicons
                                     name="camera-outline"
-                                    size={31}
+                                    size={s(31)}
                                     color="#FF7F00"
                                 />
 
-                                <Text style={styles.photoHint}>
+                                <Text
+                                    style={styles.photoHint}
+                                    maxFontSizeMultiplier={1.1}
+                                >
                                     Add Photo
                                 </Text>
                             </View>
@@ -223,7 +260,7 @@ export default function CoGuardianScreen() {
                             >
                                 <Ionicons
                                     name="close"
-                                    size={15}
+                                    size={s(15)}
                                     color="#FFFFFF"
                                 />
                             </Pressable>
@@ -249,11 +286,14 @@ export default function CoGuardianScreen() {
                             <View style={styles.emptyPhotoContent}>
                                 <Ionicons
                                     name="camera-outline"
-                                    size={31}
+                                    size={s(31)}
                                     color="#FF7F00"
                                 />
 
-                                <Text style={styles.photoHint}>
+                                <Text
+                                    style={styles.photoHint}
+                                    maxFontSizeMultiplier={1.1}
+                                >
                                     Add Photo
                                 </Text>
                             </View>
@@ -269,7 +309,7 @@ export default function CoGuardianScreen() {
                             >
                                 <Ionicons
                                     name="close"
-                                    size={15}
+                                    size={s(15)}
                                     color="#FFFFFF"
                                 />
                             </Pressable>
@@ -284,7 +324,7 @@ export default function CoGuardianScreen() {
                     >
                         <Ionicons
                             name="camera"
-                            size={20}
+                            size={s(20)}
                             color="#382018"
                         />
                     </Pressable>
@@ -324,18 +364,24 @@ export default function CoGuardianScreen() {
 
                 <View style={styles.buttonWrapper}>
 
+                    {/* Text stays centered (no icon inside the button) */}
                     <PrimaryButton
                         title="Add Co-Guardian"
                         onPress={handleAddCoGuardian}
-                        icon={
-                            <Ionicons
-                                name="grid-outline"
-                                size={19}
-                                color="#FFFFFF"
-                                style={styles.buttonIcon}
-                            />
-                        }
                     />
+
+                    {/* Icon is pinned to the left, vertically centered,
+                        and never blocks the button touch */}
+                    <View
+                        pointerEvents="none"
+                        style={styles.buttonIconContainer}
+                    >
+                        <Ionicons
+                            name="grid-outline"
+                            size={s(19)}
+                            color="#FFFFFF"
+                        />
+                    </View>
 
                 </View>
 
@@ -343,7 +389,10 @@ export default function CoGuardianScreen() {
                     onPress={handleSkip}
                     style={styles.skipButton}
                 >
-                    <Text style={styles.skipText}>
+                    <Text
+                        style={styles.skipText}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Skip for now
                     </Text>
                 </Pressable>
@@ -370,11 +419,17 @@ const InfoCard = ({
     return (
         <View style={styles.infoCard}>
 
-            <Text style={styles.cardTitle}>
+            <Text
+                style={styles.cardTitle}
+                maxFontSizeMultiplier={1.1}
+            >
                 {title}
             </Text>
 
-            <Text style={styles.cardDescription}>
+            <Text
+                style={styles.cardDescription}
+                maxFontSizeMultiplier={1.1}
+            >
                 {description}
             </Text>
 
@@ -409,23 +464,23 @@ const styles = StyleSheet.create({
 
     header: {
         alignItems: "center",
-        paddingHorizontal: 5,
+        paddingHorizontal: s(5),
     },
 
     title: {
         fontFamily: "Fredoka_600SemiBold",
-        fontSize: 32,
-        lineHeight: 36,
+        fontSize: s(32),
+        lineHeight: s(36),
         color: "#FF7F00",
         textAlign: "center",
         letterSpacing: 0,
     },
 
     subtitle: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#381B0E",
         textAlign: "center",
     },
@@ -437,15 +492,15 @@ const styles = StyleSheet.create({
     profileSection: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 25,
-        height: 145,
+        marginTop: s(25),
+        height: s(145),
         position: "relative",
     },
 
     profileCircle: {
-        width: 148,
-        height: 148,
-        borderRadius: 75,
+        width: s(148),
+        height: s(148),
+        borderRadius: s(75),
         backgroundColor: "#FFE0C4",
         borderWidth: 1.5,
         borderColor: "#FF7F00",
@@ -456,17 +511,17 @@ const styles = StyleSheet.create({
     },
 
     profileCircleLeft: {
-        left: "19%",
+        left: PHOTO_LEFT,
     },
 
     profileCircleRight: {
-        right: "16%",
+        right: PHOTO_RIGHT,
     },
 
     guardianImage: {
         width: "100%",
         height: "100%",
-        borderRadius: 75,
+        borderRadius: s(75),
     },
 
     emptyPhotoContent: {
@@ -475,9 +530,9 @@ const styles = StyleSheet.create({
     },
 
     photoHint: {
-        marginTop: 4,
+        marginTop: s(4),
         fontFamily: "Nunito_700Bold",
-        fontSize: 10,
+        fontSize: s(10),
         color: "#FF7F00",
     },
 
@@ -485,11 +540,11 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 0,
         left: "50%",
-        marginLeft: -20,
+        marginLeft: s(-20),
 
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: s(40),
+        height: s(40),
+        borderRadius: s(20),
 
         backgroundColor: "#FFFFFF",
 
@@ -503,22 +558,22 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: s(2),
         },
         shadowOpacity: 0.18,
-        shadowRadius: 5,
+        shadowRadius: s(5),
 
         zIndex: 20,
     },
 
     removePhotoButton: {
         position: "absolute",
-        top: 7,
-        right: 7,
+        top: s(7),
+        right: s(7),
 
-        width: 25,
-        height: 25,
-        borderRadius: 13,
+        width: s(25),
+        height: s(25),
+        borderRadius: s(13),
 
         backgroundColor: "#FF4B32",
 
@@ -538,39 +593,39 @@ const styles = StyleSheet.create({
 
     cardsContainer: {
         width: "100%",
-        paddingHorizontal: 16,
-        marginTop: 18,
-        gap: 9,
+        paddingHorizontal: s(16),
+        marginTop: s(18),
+        gap: s(9),
     },
 
     infoCard: {
         width: "100%",
-        minHeight: 58,
+        minHeight: s(58),
 
         borderWidth: 1,
         borderColor: "#FF7F00",
-        borderRadius: 11,
+        borderRadius: s(11),
 
         backgroundColor: "#FFFFFF",
 
-        paddingHorizontal: 21,
-        paddingVertical: 9,
+        paddingHorizontal: s(21),
+        paddingVertical: s(9),
 
         justifyContent: "center",
     },
 
     cardTitle: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 16,
-        lineHeight: 20,
+        fontSize: s(16),
+        lineHeight: s(20),
         color: "#381B0E",
     },
 
     cardDescription: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: s(13),
+        lineHeight: s(18),
         color: "#6B554A",
     },
 
@@ -659,23 +714,29 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
 
-    buttonIcon: {
-        marginLeft: -307,
+    buttonIconContainer: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: s(70),
+
+        alignItems: "center",
+        justifyContent: "center",
     },
 
     skipButton: {
-        height: 34,
+        height: s(34),
 
         alignItems: "center",
         justifyContent: "center",
 
-        marginTop: 1,
+        marginTop: s(1),
     },
 
     skipText: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: s(13),
+        lineHeight: s(18),
         fontWeight:900,
         color: "#8B6D5C",
         textAlign: "center",

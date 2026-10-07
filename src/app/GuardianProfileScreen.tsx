@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
+    Nunito_600SemiBold,
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
@@ -33,9 +34,27 @@ const SCALE = Math.min(
     height / DESIGN_HEIGHT
 );
 
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, gap,
+ * icon size...) is multiplied by the same scale factor, so the
+ * screen looks like the design (393 x 852) on every device.
+ *
+ * - Small phones -> everything shrinks proportionally
+ * - Big phones   -> capped at 1.3 so nothing looks oversized
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+/* Placeholder colour (thoda gehra, better contrast) */
+const PLACEHOLDER_COLOR = "#8F7365";
+
 export default function GuardianProfileScreen() {
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
+        Nunito_600SemiBold,
         Nunito_700Bold,
     });
 
@@ -88,14 +107,10 @@ export default function GuardianProfileScreen() {
         setProfilePhoto(null);
     };
 
-     const handleContinue = () => {
-    
-           
-    
-           router.push("/CoGuardianScreen")
-    
-            // API / next navigation yahan connect kar sakte ho.
-        };
+    const handleContinue = () => {
+        router.push("/CoGuardianScreen");
+    };
+
     return (
         <View style={styles.container}>
 
@@ -149,11 +164,17 @@ export default function GuardianProfileScreen() {
 
                 <View style={styles.header}>
 
-                    <Text style={styles.title}>
+                    <Text
+                        style={styles.title}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         {"Let's get to know you !"}
                     </Text>
 
-                    <Text style={styles.subtitle}>
+                    <Text
+                        style={styles.subtitle}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Create your guardian profile to start your
                         pet card journey
                     </Text>
@@ -162,60 +183,72 @@ export default function GuardianProfileScreen() {
 
                 {/* ==============================
                     GUARDIAN IMAGE
+                    (same as PetDetailsScreen)
                 ============================== */}
 
                 <View style={styles.profileSection}>
 
-                    <Pressable
-                        onPress={handleChoosePhoto}
-                        style={styles.profileCircle}
-                    >
-                        {profilePhoto ? (
-                            <Image
-                                source={{ uri: profilePhoto }}
-                                resizeMode="cover"
-                                style={styles.guardianImage}
-                            />
-                        ) : (
-                            <View style={styles.emptyPhotoContent}>
-                                <Ionicons
-                                    name="camera-outline"
-                                    size={31}
-                                    color="#FF7A00"
-                                />
+                    <View style={styles.profileWrapper}>
 
-                                <Text style={styles.photoHint}>
-                                    Add Photo
-                                </Text>
-                            </View>
-                        )}
-                    </Pressable>
-
-                    {!profilePhoto && (
                         <Pressable
                             onPress={handleChoosePhoto}
-                            style={styles.cameraButton}
+                            style={styles.profileCircle}
                         >
-                            <Ionicons
-                                name="camera"
-                                size={20}
-                                color="#382018"
-                            />
-                        </Pressable>
-                    )}
+                            {profilePhoto ? (
+                                <Image
+                                    source={{ uri: profilePhoto }}
+                                    resizeMode="cover"
+                                    style={styles.selectedPhoto}
+                                />
+                            ) : (
+                                <View style={styles.emptyPhotoContent}>
+                                    <Ionicons
+                                        name="camera-outline"
+                                        size={s(31)}
+                                        color="#FF7A00"
+                                    />
 
-                    {profilePhoto && (
-                        <Pressable
-                            onPress={handleRemovePhoto}
-                            style={styles.removePhotoButton}
-                        >
-                            <Ionicons
-                                name="close"
-                                size={17}
-                                color="#FFFFFF"
-                            />
+                                    <Text
+                                        style={styles.photoHint}
+                                        maxFontSizeMultiplier={1.1}
+                                    >
+                                        Add Photo
+                                    </Text>
+                                </View>
+                            )}
                         </Pressable>
-                    )}
+
+                        {/* CAMERA ICON */}
+
+                        {!profilePhoto && (
+                            <Pressable
+                                onPress={handleChoosePhoto}
+                                style={styles.cameraButton}
+                            >
+                                <Ionicons
+                                    name="camera"
+                                    size={s(20)}
+                                    color="#382018"
+                                />
+                            </Pressable>
+                        )}
+
+                        {/* REMOVE PHOTO */}
+
+                        {profilePhoto && (
+                            <Pressable
+                                onPress={handleRemovePhoto}
+                                style={styles.removePhotoButton}
+                            >
+                                <Ionicons
+                                    name="close"
+                                    size={s(17)}
+                                    color="#FFFFFF"
+                                />
+                            </Pressable>
+                        )}
+
+                    </View>
 
                 </View>
 
@@ -227,7 +260,10 @@ export default function GuardianProfileScreen() {
 
                     {/* NAME */}
 
-                    <Text style={styles.label}>
+                    <Text
+                        style={styles.label}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Your Name
                     </Text>
 
@@ -235,7 +271,7 @@ export default function GuardianProfileScreen() {
 
                         <Ionicons
                             name="person-outline"
-                            size={15}
+                            size={s(16)}
                             color="#8B6D5C"
                         />
 
@@ -244,39 +280,48 @@ export default function GuardianProfileScreen() {
                             onChangeText={setName}
                             style={styles.input}
                             placeholder="Enter your name"
-                            placeholderTextColor="#A58C7F"
+                            placeholderTextColor={PLACEHOLDER_COLOR}
+                            maxFontSizeMultiplier={1.1}
                         />
 
                     </View>
 
                     {/* PHONE */}
 
-                    <Text style={styles.label}>
+                    <Text
+                        style={styles.label}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Phone Number
                     </Text>
 
                     <View style={styles.inputWrapper}>
 
-                        <Text style={styles.flag}>
+                        <Text
+                            style={styles.flag}
+                            maxFontSizeMultiplier={1.1}
+                        >
                             🇮🇳
                         </Text>
-
-                        
 
                         <TextInput
                             value={phone}
                             onChangeText={setPhone}
                             style={styles.input}
                             placeholder="+91"
-                            placeholderTextColor="#A58C7F"
+                            placeholderTextColor={PLACEHOLDER_COLOR}
                             keyboardType="phone-pad"
+                            maxFontSizeMultiplier={1.1}
                         />
 
                     </View>
 
                     {/* EMAIL */}
 
-                    <Text style={styles.label}>
+                    <Text
+                        style={styles.label}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Email Address
                     </Text>
 
@@ -284,7 +329,7 @@ export default function GuardianProfileScreen() {
 
                         <Ionicons
                             name="mail-outline"
-                            size={15}
+                            size={s(16)}
                             color="#8B6D5C"
                         />
 
@@ -293,16 +338,20 @@ export default function GuardianProfileScreen() {
                             onChangeText={setEmail}
                             style={styles.input}
                             placeholder="Enter your email"
-                            placeholderTextColor="#A58C7F"
+                            placeholderTextColor={PLACEHOLDER_COLOR}
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            maxFontSizeMultiplier={1.1}
                         />
 
                     </View>
 
                     {/* LOCATION */}
 
-                    <Text style={styles.label}>
+                    <Text
+                        style={styles.label}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Your Location (Optional)
                     </Text>
 
@@ -310,7 +359,7 @@ export default function GuardianProfileScreen() {
 
                         <Ionicons
                             name="location-outline"
-                            size={16}
+                            size={s(16)}
                             color="#8B6D5C"
                         />
 
@@ -319,12 +368,13 @@ export default function GuardianProfileScreen() {
                             onChangeText={setLocation}
                             style={styles.input}
                             placeholder="Enter your location"
-                            placeholderTextColor="#A58C7F"
+                            placeholderTextColor={PLACEHOLDER_COLOR}
+                            maxFontSizeMultiplier={1.1}
                         />
 
                         <Ionicons
                             name="locate-outline"
-                            size={16}
+                            size={s(16)}
                             color="#9B765F"
                         />
 
@@ -332,7 +382,10 @@ export default function GuardianProfileScreen() {
 
                     {/* RELATIONSHIP */}
 
-                    <Text style={styles.label}>
+                    <Text
+                        style={styles.label}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Relationship to Pet
                     </Text>
 
@@ -345,7 +398,7 @@ export default function GuardianProfileScreen() {
 
                         <Ionicons
                             name="paw-outline"
-                            size={16}
+                            size={s(16)}
                             color="#8B6D5C"
                         />
 
@@ -355,6 +408,8 @@ export default function GuardianProfileScreen() {
                                 !relationship &&
                                 styles.relationshipPlaceholder,
                             ]}
+                            numberOfLines={1}
+                            maxFontSizeMultiplier={1.1}
                         >
                             {relationship ||
                                 "Select relationship"}
@@ -362,7 +417,7 @@ export default function GuardianProfileScreen() {
 
                         <Ionicons
                             name="chevron-down"
-                            size={16}
+                            size={s(16)}
                             color="#9B765F"
                         />
 
@@ -376,7 +431,7 @@ export default function GuardianProfileScreen() {
                 CONTINUE BUTTON
             ============================== */}
 
-              <View style={styles.bottomSection}>
+            <View style={styles.bottomSection}>
                 <View style={styles.buttonWrapper}>
 
                     <PrimaryButton
@@ -392,7 +447,6 @@ export default function GuardianProfileScreen() {
                     />
 
                     {/* PAW ICON */}
-
 
                 </View>
             </View>
@@ -422,7 +476,10 @@ export default function GuardianProfileScreen() {
                         }
                     >
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>
+                            <Text
+                                style={styles.modalTitle}
+                                maxFontSizeMultiplier={1.1}
+                            >
                                 Relationship to Pet
                             </Text>
 
@@ -433,7 +490,7 @@ export default function GuardianProfileScreen() {
                             >
                                 <Ionicons
                                     name="close"
-                                    size={23}
+                                    size={s(23)}
                                     color="#382018"
                                 />
                             </Pressable>
@@ -459,7 +516,7 @@ export default function GuardianProfileScreen() {
                                     >
                                         <Ionicons
                                             name="paw-outline"
-                                            size={17}
+                                            size={s(17)}
                                             color={
                                                 isSelected
                                                     ? "#FF7A00"
@@ -471,6 +528,7 @@ export default function GuardianProfileScreen() {
                                             style={
                                                 styles.relationshipOptionText
                                             }
+                                            maxFontSizeMultiplier={1.1}
                                         >
                                             {item}
                                         </Text>
@@ -478,7 +536,7 @@ export default function GuardianProfileScreen() {
                                         {isSelected && (
                                             <Ionicons
                                                 name="checkmark"
-                                                size={19}
+                                                size={s(19)}
                                                 color="#FF7A00"
                                             />
                                         )}
@@ -517,76 +575,97 @@ const styles = StyleSheet.create({
 
     header: {
         alignItems: "center",
-        paddingHorizontal: 5,
+        paddingHorizontal: s(5),
     },
 
     title: {
         fontFamily: "Fredoka_600SemiBold",
-        fontSize: 32,
-        lineHeight: 36,
+        fontSize: s(32),
+        lineHeight: s(36),
         color: "#FF7A00",
         textAlign: "center",
         letterSpacing: 0,
     },
 
     subtitle: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#381B0E",
         textAlign: "center",
     },
 
     /* ==============================
        PROFILE IMAGE
+       (PetDetailsScreen jaisa same)
     ============================== */
 
     profileSection: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 25,
-        height: 110,
+
+        marginTop: s(28),
+
+        height: s(130),
+    },
+
+    profileWrapper: {
+        width: s(125),
+        height: s(125),
+
         position: "relative",
+
+        alignItems: "center",
+        justifyContent: "center",
     },
 
     profileCircle: {
-        width: 125,
-        height: 125,
+        width: s(125),
+        height: s(125),
+
         borderRadius: 100,
+
         backgroundColor: "#FFE0C4",
+
         alignItems: "center",
-        justifyContent: "flex-end",
+        justifyContent: "center",
+
         overflow: "hidden",
     },
 
-    guardianImage: {
-        width: 105,
-        height: 105,
-        borderRadius: 55,
+    selectedPhoto: {
+        width: "100%",
+        height: "100%",
+
+        borderRadius: 100,
     },
 
     emptyPhotoContent: {
-        top:-40,
         alignItems: "center",
         justifyContent: "center",
     },
 
     photoHint: {
-        marginTop: 3,
+        marginTop: s(3),
+
         fontFamily: "Nunito_700Bold",
-        fontSize: 10,
+
+        fontSize: s(10),
+
         color: "#FF7A00",
     },
 
     cameraButton: {
         position: "absolute",
-        right: width * 0.34,
-        bottom: -10,
 
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        right: s(7),
+
+        bottom: s(-10),
+
+        width: s(40),
+        height: s(40),
+        borderRadius: s(20),
 
         backgroundColor: "#FFFFFF",
 
@@ -596,24 +675,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#F0E1D8",
 
-        elevation: 4,
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: s(2),
         },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
+        shadowOpacity: 0.16,
+        shadowRadius: s(4),
+
+        elevation: 4,
+
+        zIndex: 10,
     },
 
     removePhotoButton: {
         position: "absolute",
-        right: width * 0.29,
-        top: 1,
 
-        width: 27,
-        height: 27,
-        borderRadius: 15,
+        right: s(5),
+        top: s(5),
+
+        width: s(29),
+        height: s(29),
+
+        borderRadius: s(15),
 
         backgroundColor: "#FF4B32",
 
@@ -623,8 +707,9 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: "#FFFFFF",
 
-        elevation: 5,
         zIndex: 20,
+
+        elevation: 5,
     },
 
     /* ==============================
@@ -632,33 +717,33 @@ const styles = StyleSheet.create({
     ============================== */
 
     form: {
-        paddingHorizontal: 19,
-        marginTop: 13,
+        paddingHorizontal: s(21),
+        marginTop: s(13),
     },
 
     label: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 10,
-        lineHeight: 13,
+        fontSize: s(13),
+        lineHeight: s(17),
         color: "#382018",
-        marginBottom: 3,
-        marginTop: 9,
+        marginBottom: s(5),
+        marginTop: s(9),
     },
 
     inputWrapper: {
-        height: 38,
+        height: s(42),
         width: "100%",
 
         borderWidth: 1,
         borderColor: "#FF7A00",
-        borderRadius: 9,
+        borderRadius: s(9),
 
         backgroundColor: "#FFFFFF",
 
         flexDirection: "row",
         alignItems: "center",
 
-        paddingHorizontal: 8,
+        paddingHorizontal: s(11),
     },
 
     input: {
@@ -666,38 +751,40 @@ const styles = StyleSheet.create({
 
         height: "100%",
 
-        paddingHorizontal: 6,
+        paddingHorizontal: s(6),
         paddingVertical: 0,
 
-        fontFamily: "Nunito_700Bold",
-        fontSize: 13,
+        fontFamily: "Nunito_600SemiBold",
+        fontSize: s(14),
 
         color: "#382018",
+
+        textAlignVertical: "center",
     },
 
     flag: {
-        fontSize: 16,
+        fontSize: s(16),
     },
 
     countryArrow: {
-        fontSize: 12,
+        fontSize: s(12),
         color: "#8B6D5C",
-        marginLeft: 2,
+        marginLeft: s(2),
     },
 
     relationshipText: {
         flex: 1,
 
-        marginLeft: 6,
+        marginLeft: s(6),
 
-        fontFamily: "Nunito_700Bold",
-        fontSize: 13,
+        fontFamily: "Nunito_600SemiBold",
+        fontSize: s(14),
 
         color: "#382018",
     },
 
     relationshipPlaceholder: {
-        color: "#A58C7F",
+        color: PLACEHOLDER_COLOR,
     },
 
     /* ==============================
@@ -760,8 +847,8 @@ const styles = StyleSheet.create({
     },
 
     /* =========================================================
-           BOTTOM BUTTON
-        ========================================================= */
+       BOTTOM BUTTON
+    ========================================================= */
 
     bottomSection: {
         position: "absolute",
@@ -789,7 +876,7 @@ const styles = StyleSheet.create({
         width: "100%",
         height: Math.min(height * 0.061, 52),
 
-        borderRadius: 15,
+        borderRadius: s(15),
 
         alignSelf: "center",
 
@@ -797,10 +884,10 @@ const styles = StyleSheet.create({
         shadowColor: "#FF7A00",
         shadowOffset: {
             width: 0,
-            height: 7,
+            height: s(7),
         },
         shadowOpacity: 0.20,
-        shadowRadius: 12,
+        shadowRadius: s(12),
 
         elevation: 5,
     },
@@ -811,11 +898,11 @@ const styles = StyleSheet.create({
 
         top: "-30%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft: 20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },
@@ -833,14 +920,14 @@ const styles = StyleSheet.create({
     relationshipModal: {
         backgroundColor: "#FFFFFF",
 
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: s(24),
+        borderTopRightRadius: s(24),
 
         maxHeight: height * 0.55,
 
-        paddingTop: 18,
-        paddingBottom: 25,
-        paddingHorizontal: 20,
+        paddingTop: s(18),
+        paddingBottom: s(25),
+        paddingHorizontal: s(20),
     },
 
     modalHeader: {
@@ -850,7 +937,7 @@ const styles = StyleSheet.create({
 
         justifyContent: "space-between",
 
-        paddingBottom: 12,
+        paddingBottom: s(12),
 
         borderBottomWidth: 1,
         borderBottomColor: "#F0E4DD",
@@ -858,18 +945,18 @@ const styles = StyleSheet.create({
 
     modalTitle: {
         fontFamily: "Fredoka_600SemiBold",
-        fontSize: 21,
+        fontSize: s(21),
         color: "#FF7A00",
     },
 
     relationshipOption: {
-        minHeight: 50,
+        minHeight: s(50),
 
         flexDirection: "row",
 
         alignItems: "center",
 
-        paddingHorizontal: 8,
+        paddingHorizontal: s(8),
 
         borderBottomWidth: 1,
         borderBottomColor: "#F7EEE9",
@@ -878,10 +965,10 @@ const styles = StyleSheet.create({
     relationshipOptionText: {
         flex: 1,
 
-        marginLeft: 8,
+        marginLeft: s(8),
 
-        fontFamily: "Nunito_700Bold",
-        fontSize: 14,
+        fontFamily: "Nunito_600SemiBold",
+        fontSize: s(14),
 
         color: "#382018",
     },

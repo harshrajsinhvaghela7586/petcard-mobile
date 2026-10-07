@@ -16,11 +16,39 @@ import {
     useFonts,
 } from "@expo-google-fonts/nunito";
 import PrimaryButton from "@/components/Button/PrimaryButton";
+import { router } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 const DESIGN_WIDTH = 393;
 const DESIGN_HEIGHT = 852;
 const SCALE = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, image,
+ * icon size...) is multiplied by the same scale factor, so the screen
+ * looks like the design (393 x 852) on every device.
+ *
+ * - Small phones  -> everything shrinks proportionally
+ * - Medium phones -> ~ same as design
+ * - Large phones  -> grows proportionally, capped at 1.3
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+/*
+ * Avatar grid (3 columns)
+ * Same math as before ((width - 52) / 3 on the 393 design):
+ * 10px side padding on both sides + 16px gap between the 3 cards.
+ * Padding and gap are scaled, card width fills the rest,
+ * so the 3 cards always fit exactly on every screen width.
+ */
+const LIST_PADDING = s(10);
+const CARD_GAP = s(16);
+const AVATAR_CARD_WIDTH =
+    (width - LIST_PADDING * 2 - CARD_GAP * 2) / 3;
 
 // Temporary frontend data. Replace this array with API response later.
 const AVATAR_DATA = [
@@ -62,7 +90,7 @@ export default function ChooseAvatarScreen() {
     };
 
     const handleContinue = () => {
-        console.log("Selected Avatar:", selectedAvatar);
+       router.push("/ChooseStickerScreen")
     };
 
     return (
@@ -89,8 +117,8 @@ export default function ChooseAvatarScreen() {
             />
 
             <View style={styles.header}>
-                <Text style={styles.title}>Choose an Avatar</Text>
-                <Text style={styles.subtitle}>
+                <Text style={styles.title} maxFontSizeMultiplier={1.1}>Choose an Avatar</Text>
+                <Text style={styles.subtitle} maxFontSizeMultiplier={1.1}>
                     Select an avatar that looks just like your
                     pet.
                 </Text>
@@ -138,10 +166,10 @@ export default function ChooseAvatarScreen() {
                             />
 
                             <View style={styles.customizeTextArea}>
-                                <Text style={styles.customizeTitle}>
+                                <Text style={styles.customizeTitle} maxFontSizeMultiplier={1.1}>
                                     Customize More
                                 </Text>
-                                <Text style={styles.customizeDescription}>
+                                <Text style={styles.customizeDescription} maxFontSizeMultiplier={1.1}>
                                     You can change fur, ears, eyes,{"\n"}
                                     body and add fun accessories{"\n"}
                                     in the next step.
@@ -151,7 +179,7 @@ export default function ChooseAvatarScreen() {
                             <View style={styles.customizeArrow}>
                                 <Ionicons
                                     name="arrow-forward"
-                                    size={21}
+                                    size={s(21)}
                                     color="#FF7A00"
                                 />
                             </View>
@@ -187,51 +215,51 @@ const styles = StyleSheet.create({
 
     header: {
         alignItems: "center",
-        paddingHorizontal: 5,
+        paddingHorizontal: s(5),
         paddingTop: height * 0.112,
-        marginBottom: 15,
+        marginBottom: s(15),
     },
 
     title: {
         fontFamily: "Fredoka_600SemiBold",
-        fontSize: 32,
-        lineHeight: 36,
+        fontSize: s(32),
+        lineHeight: s(36),
         color: "#FF7A00",
         textAlign: "center",
         letterSpacing: 0,
     },
 
     subtitle: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#381B0E",
         textAlign: "center",
     },
 
     listContent: {
-        paddingHorizontal: 10,
-        paddingTop: 1,
-        paddingBottom: 125,
+        paddingHorizontal: LIST_PADDING,
+        paddingTop: s(1),
+        paddingBottom: s(125),
     },
 
     avatarRow: {
         justifyContent: "space-between",
-        marginBottom: 14,
+        marginBottom: s(14),
     },
 
     avatarCard: {
-        width: (width - 52) / 3,
-        height: 141,
-        borderRadius: 20,
+        width: AVATAR_CARD_WIDTH,
+        height: s(141),
+        borderRadius: s(20),
         backgroundColor: "#FFFAF4",
         borderWidth: 1,
         borderColor: "#FF7A00",
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        marginTop:10
+        marginTop: s(10),
     },
 
     avatarCardSelected: {
@@ -246,14 +274,14 @@ const styles = StyleSheet.create({
     },
 
     footerContent: {
-        paddingTop: 106,
-        paddingBottom: 8,
+        paddingTop: s(106),
+        paddingBottom: s(8),
     },
 
     customizeCard: {
         width: "100%",
-        height: 107,
-        borderRadius: 25,
+        height: s(107),
+        borderRadius: s(25),
         backgroundColor: "#FFE0C4",
         borderWidth: 1.5,
         borderColor: "#FF7A00",
@@ -261,7 +289,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         position: "relative",
         overflow: "hidden",
-        marginTop:85
+        marginTop: s(155),
     },
 
     customizePressed: {
@@ -270,43 +298,43 @@ const styles = StyleSheet.create({
     },
 
     customizeDog: {
-        width: 110,
-        height: 105,
-        marginRight: 5,
+        width: s(110),
+        height: s(105),
+        marginRight: s(5),
         alignSelf: "flex-end",
     },
 
     customizeTextArea: {
         flex: 1,
-        marginLeft: -3,
-        paddingRight: 48,
+        marginLeft: s(-3),
+        paddingRight: s(48),
         justifyContent: "center",
         zIndex: 3,
     },
 
     customizeTitle: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#FF7F00",
     },
 
     customizeDescription: {
         marginTop: 0,
         fontFamily: "Nunito_700Bold",
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: s(12),
+        lineHeight: s(16),
         color: "#381B0E",
     },
 
     customizeArrow: {
         position: "absolute",
-        right: 6,
+        right: s(6),
         top: "50%",
-        marginTop: -21,
-        width: 43,
-        height: 43,
-        borderRadius: 22,
+        marginTop: s(-21),
+        width: s(43),
+        height: s(43),
+        borderRadius: s(22),
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
         borderColor: "#FF7A00",
@@ -352,16 +380,16 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        paddingHorizontal: 6,
-        paddingBottom: 27,
+        paddingHorizontal: s(6),
+        paddingBottom: s(27),
         backgroundColor: "transparent",
         zIndex: 20,
     },
 
     continueButton: {
         width: "100%",
-        height: 50,
-        borderRadius: 15,
+        height: s(50),
+        borderRadius: s(15),
     },
 
     buttonPaw: {
@@ -370,11 +398,11 @@ const styles = StyleSheet.create({
 
         top: "-30%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft: 20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },

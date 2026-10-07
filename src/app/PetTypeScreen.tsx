@@ -28,6 +28,34 @@ const SCALE = Math.min(
     height / DESIGN_HEIGHT
 );
 
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, radius, icon...) is
+ * multiplied by the same scale factor, so the screen looks like
+ * the design (393 x 852) on every device.
+ *
+ * - Small phones -> everything shrinks proportionally
+ * - Big phones   -> capped at 1.3 so nothing looks oversized
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+/*
+ * Card height (same formula as before, kept in one place)
+ * Pet images are also limited by this height, so on small
+ * screens the image never grows bigger than the card.
+ */
+const CARD_HEIGHT = Math.min(height * 0.127, 108);
+
+const petImageSize = (widthFactor: number, maxSize: number) =>
+    Math.min(
+        width * widthFactor,
+        maxSize,
+        CARD_HEIGHT * (maxSize / 108)
+    );
+
 type PetType = "dog" | "cat" | "rabbit";
 
 interface PetOption {
@@ -125,11 +153,17 @@ export default function PetTypeScreen({
             ===================================================== */}
 
             <View style={styles.header}>
-                <Text style={styles.title}>
+                <Text
+                    style={styles.title}
+                    maxFontSizeMultiplier={1.1}
+                >
                     Choose Your Pet Type
                 </Text>
 
-                <Text style={styles.subtitle}>
+                <Text
+                    style={styles.subtitle}
+                    maxFontSizeMultiplier={1.1}
+                >
                     Select your pet type to get started{"\n"}
                     with their PetCard.
                 </Text>
@@ -182,11 +216,15 @@ export default function PetTypeScreen({
                                         isSelected &&
                                             styles.petNameSelected,
                                     ]}
+                                    maxFontSizeMultiplier={1.1}
                                 >
                                     {pet.name}
                                 </Text>
 
-                                <Text style={styles.petDescription}>
+                                <Text
+                                    style={styles.petDescription}
+                                    maxFontSizeMultiplier={1.1}
+                                >
                                     {pet.description}
                                 </Text>
                             </View>
@@ -239,14 +277,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
 
         paddingTop: height * 0.112,
-        paddingHorizontal: 20,
+        paddingHorizontal: s(20),
     },
 
     title: {
         fontFamily: "Fredoka_600SemiBold",
 
-        fontSize:32,
-        lineHeight: 36,
+        fontSize: s(32),
+        lineHeight: s(36),
 
         color: "#FF7F00",
 
@@ -255,12 +293,12 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        marginTop: 7,
+        marginTop: s(7),
 
         fontFamily: "Nunito_700Bold",
 
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
 
         color: "#382018",
 
@@ -285,9 +323,9 @@ const styles = StyleSheet.create({
         width: "96%",
         alignSelf: "center",
 
-        height: Math.min(height * 0.127, 108),
+        height: CARD_HEIGHT,
 
-        borderRadius: 20,
+        borderRadius: s(20),
 
         borderWidth: 1,
         borderColor: "#FFDCC5",
@@ -314,38 +352,38 @@ const styles = StyleSheet.create({
     petImage: {
         position: "absolute",
 
-        left: -2,
+        left: s(-2),
 
-        bottom: -4,
+        bottom: s(-4),
 
-        width: Math.min(width * 0.32, 128),
-        height: Math.min(width * 0.32, 128),
+        width: petImageSize(0.32, 128),
+        height: petImageSize(0.32, 128),
 
         zIndex: 5,
     },
 
     dogImage: {
-        width: Math.min(width * 0.34, 134),
-        height: Math.min(width * 0.34, 134),
+        width: petImageSize(0.34, 134),
+        height: petImageSize(0.34, 134),
 
-        left: -4,
-        bottom: -5,
+        left: s(-4),
+        bottom: s(-5),
     },
 
     catImage: {
-        width: Math.min(width * 0.32, 126),
-        height: Math.min(width * 0.32, 126),
+        width: petImageSize(0.32, 126),
+        height: petImageSize(0.32, 126),
 
         left: 0,
-        bottom: -4,
+        bottom: s(-4),
     },
 
     rabbitImage: {
-        width: Math.min(width * 0.31, 122),
-        height: Math.min(width * 0.31, 122),
+        width: petImageSize(0.31, 122),
+        height: petImageSize(0.31, 122),
 
-        left: 1,
-        bottom: -3,
+        left: s(1),
+        bottom: s(-3),
     },
 
     /* =========================================================
@@ -365,8 +403,8 @@ const styles = StyleSheet.create({
     petName: {
         fontFamily: "Fredoka_600SemiBold",
 
-        fontSize: Math.min(width * 0.047, 20),
-        lineHeight: Math.min(width * 0.058, 24),
+        fontSize: Math.min(width * 0.047, s(20)),
+        lineHeight: Math.min(width * 0.058, s(24)),
 
         color: "#FF7A00",
 
@@ -380,8 +418,8 @@ const styles = StyleSheet.create({
     petDescription: {
         fontFamily: "Nunito_700Bold",
 
-        fontSize: Math.min(width * 0.040, 16),
-        lineHeight: Math.min(width * 0.052, 21),
+        fontSize: Math.min(width * 0.040, s(16)),
+        lineHeight: Math.min(width * 0.052, s(21)),
 
         color: "#3B241B",
     },
@@ -464,7 +502,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: Math.min(height * 0.061, 52),
 
-    borderRadius: 15,
+    borderRadius: s(15),
 
     alignSelf: "center",
 
@@ -472,10 +510,10 @@ const styles = StyleSheet.create({
     shadowColor: "#FF7A00",
     shadowOffset: {
         width: 0,
-        height: 7,
+        height: s(7),
     },
     shadowOpacity: 0.20,
-    shadowRadius: 12,
+    shadowRadius: s(12),
 
     elevation: 5,
 },
@@ -486,11 +524,11 @@ const styles = StyleSheet.create({
         
         top: "-30%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft:20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },
