@@ -19,6 +19,7 @@ import {
 } from "@expo-google-fonts/fredoka";
 
 import {
+    Nunito_600SemiBold,
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
@@ -37,6 +38,23 @@ const SCALE = Math.min(
     width / DESIGN_WIDTH,
     height / DESIGN_HEIGHT
 );
+
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, gap,
+ * icon size...) is multiplied by the same scale factor, so the
+ * screen looks like the design (393 x 852) on every device.
+ *
+ * - Small phones -> everything shrinks proportionally
+ * - Big phones   -> capped at 1.3 so nothing looks oversized
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+/* Placeholder colour (thoda gehra, better contrast) */
+const PLACEHOLDER_COLOR = "#8F7365";
 
 /* =============================================================
    TYPES
@@ -58,62 +76,28 @@ type DropdownType =
 
 const BREEDS: Record<PetType, string[]> = {
     dog: [
-        "Labrador Retriever",
-        "Golden Retriever",
-        "German Shepherd",
-        "French Bulldog",
-        "Poodle",
-        "Beagle",
-        "Pug",
-        "Shih Tzu",
-        "Siberian Husky",
-        "Rottweiler",
-        "Dachshund",
-        "Cocker Spaniel",
+
         "Hungarian Vizsla",
-        "Doberman",
-        "Boxer",
-        "Great Dane",
+
         "Border Collie",
-        "Indian Pariah",
+
+        "Japanese Akita",
         "Other",
     ],
 
     cat: [
         "Persian",
-        "Siamese",
-        "Maine Coon",
-        "Ragdoll",
-        "British Shorthair",
-        "Bengal",
-        "Sphynx",
-        "Scottish Fold",
-        "American Shorthair",
-        "Russian Blue",
-        "Abyssinian",
-        "Birman",
+
         "Himalayan",
-        "Norwegian Forest Cat",
-        "Indian Domestic Cat",
+
         "Other",
     ],
 
     rabbit: [
         "Holland Lop",
-        "Netherland Dwarf",
-        "Mini Rex",
-        "Lionhead",
-        "Flemish Giant",
-        "Dutch Rabbit",
-        "English Angora",
-        "French Lop",
-        "Mini Lop",
-        "Harlequin",
-        "Rex Rabbit",
-        "New Zealand Rabbit",
-        "Californian Rabbit",
-        "Himalayan Rabbit",
-        "Indian Rabbit",
+
+        "NewZealand Bunny",
+
         "Other",
     ],
 };
@@ -143,8 +127,11 @@ const COLOURS = [
     "Tan",
     "Red",
     "Chocolate",
+    "Orange",
+    "Beige",
     "Black & White",
     "Brown & White",
+    "Brown & Beige",
     "Other",
 ];
 
@@ -201,6 +188,14 @@ export default function PetDetailsScreen() {
     const [petPhoto, setPetPhoto] =
         useState<string | null>(null);
 
+    /* "Other" select hone par user ka likha hua text */
+
+    const [customBreed, setCustomBreed] =
+        useState("");
+
+    const [customColour, setCustomColour] =
+        useState("");
+
     /* =========================================================
        DROPDOWN / DATE
     ========================================================= */
@@ -217,6 +212,7 @@ export default function PetDetailsScreen() {
 
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
+        Nunito_600SemiBold,
         Nunito_700Bold,
     });
 
@@ -342,18 +338,23 @@ export default function PetDetailsScreen() {
         const petDetails = {
             petType: selectedPetType,
             petName: petName.trim(),
-            breed,
+            breed:
+                breed === "Other"
+                    ? customBreed.trim()
+                    : breed,
             gender,
             birthDate,
             age,
             weight: weight.trim(),
-            colour,
+            colour:
+                colour === "Other"
+                    ? customColour.trim()
+                    : colour,
             photo: petPhoto,
         };
 
-       router.push("/GuardianProfileScreen")
+        router.push("/GuardianProfileScreen");
 
-        // API / next navigation yahan connect kar sakte ho.
     };
 
     /* =========================================================
@@ -428,11 +429,17 @@ export default function PetDetailsScreen() {
 
                 <View style={styles.header}>
 
-                    <Text style={styles.title}>
+                    <Text
+                        style={styles.title}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Tell Us About Your Pet
                     </Text>
 
-                    <Text style={styles.subtitle}>
+                    <Text
+                        style={styles.subtitle}
+                        maxFontSizeMultiplier={1.1}
+                    >
                         Fill in your Pet’s basic details
                     </Text>
 
@@ -481,7 +488,7 @@ export default function PetDetailsScreen() {
                                 >
                                     <Ionicons
                                         name="camera-outline"
-                                        size={31}
+                                        size={s(31)}
                                         color="#FF7A00"
                                     />
 
@@ -489,6 +496,7 @@ export default function PetDetailsScreen() {
                                         style={
                                             styles.photoHint
                                         }
+                                        maxFontSizeMultiplier={1.1}
                                     >
                                         Add Photo
                                     </Text>
@@ -510,7 +518,7 @@ export default function PetDetailsScreen() {
                             >
                                 <Ionicons
                                     name="camera"
-                                    size={20}
+                                    size={s(20)}
                                     color="#382018"
                                 />
                             </Pressable>
@@ -529,7 +537,7 @@ export default function PetDetailsScreen() {
                             >
                                 <Ionicons
                                     name="close"
-                                    size={17}
+                                    size={s(17)}
                                     color="#FFFFFF"
                                 />
                             </Pressable>
@@ -558,8 +566,9 @@ export default function PetDetailsScreen() {
                         }
                         style={styles.input}
                         placeholder="Enter pet name"
-                        placeholderTextColor="#A58C7F"
+                        placeholderTextColor={PLACEHOLDER_COLOR}
                         autoCapitalize="words"
+                        maxFontSizeMultiplier={1.1}
                     />
 
                     {/* =================================================
@@ -580,6 +589,21 @@ export default function PetDetailsScreen() {
                             )
                         }
                     />
+
+                    {breed === "Other" && (
+                        <TextInput
+                            value={customBreed}
+                            onChangeText={setCustomBreed}
+                            style={[
+                                styles.input,
+                                styles.otherInput,
+                            ]}
+                            placeholder={`Enter ${petLabel.toLowerCase()} breed`}
+                            placeholderTextColor={PLACEHOLDER_COLOR}
+                            autoCapitalize="words"
+                            maxFontSizeMultiplier={1.1}
+                        />
+                    )}
 
                     {/* =================================================
                         GENDER + DOB
@@ -627,7 +651,7 @@ export default function PetDetailsScreen() {
 
                                     <Ionicons
                                         name="male"
-                                        size={17}
+                                        size={s(17)}
                                         color={
                                             gender ===
                                                 "male"
@@ -643,6 +667,7 @@ export default function PetDetailsScreen() {
                                             "male" &&
                                             styles.genderButtonTextActive,
                                         ]}
+                                        maxFontSizeMultiplier={1.1}
                                     >
                                         Male
                                     </Text>
@@ -667,7 +692,7 @@ export default function PetDetailsScreen() {
 
                                     <Ionicons
                                         name="female"
-                                        size={17}
+                                        size={s(17)}
                                         color={
                                             gender ===
                                                 "female"
@@ -683,6 +708,7 @@ export default function PetDetailsScreen() {
                                             "female" &&
                                             styles.genderButtonTextActive,
                                         ]}
+                                        maxFontSizeMultiplier={1.1}
                                     >
                                         Female
                                     </Text>
@@ -706,15 +732,15 @@ export default function PetDetailsScreen() {
                             <Pressable
                                 onPress={() => setShowDatePicker(true)}
                                 style={({ pressed }) => [
-        styles.dropdown,
-        styles.dobDropdown,
-        pressed && styles.dobDropdownPressed,
-    ]}
+                                    styles.dropdown,
+                                    styles.dobDropdown,
+                                    pressed && styles.dobDropdownPressed,
+                                ]}
                             >
 
                                 <Ionicons
                                     name="calendar-outline"
-                                    size={16}
+                                    size={s(16)}
                                     color="#5C4033"
                                 />
 
@@ -727,6 +753,7 @@ export default function PetDetailsScreen() {
                                     numberOfLines={
                                         1
                                     }
+                                    maxFontSizeMultiplier={1.1}
                                 >
                                     {birthDate ||
                                         "Select DOB"}
@@ -734,7 +761,7 @@ export default function PetDetailsScreen() {
 
                                 <Ionicons
                                     name="chevron-down"
-                                    size={16}
+                                    size={s(16)}
                                     color="#9B765F"
                                 />
 
@@ -799,7 +826,7 @@ export default function PetDetailsScreen() {
 
                                 <Ionicons
                                     name="scale-outline"
-                                    size={16}
+                                    size={s(16)}
                                     color="#5C4033"
                                 />
 
@@ -824,14 +851,17 @@ export default function PetDetailsScreen() {
                                         styles.weightInput
                                     }
                                     placeholder="Enter weight"
-                                    placeholderTextColor="#A58C7F"
+                                    placeholderTextColor={PLACEHOLDER_COLOR}
                                     keyboardType="decimal-pad"
+                                    maxLength={6}
+                                    maxFontSizeMultiplier={1.1}
                                 />
 
                                 <Text
                                     style={
                                         styles.unitText
                                     }
+                                    maxFontSizeMultiplier={1.1}
                                 >
                                     kg
                                 </Text>
@@ -861,6 +891,21 @@ export default function PetDetailsScreen() {
                         }
                         showColourDot
                     />
+
+                    {colour === "Other" && (
+                        <TextInput
+                            value={customColour}
+                            onChangeText={setCustomColour}
+                            style={[
+                                styles.input,
+                                styles.otherInput,
+                            ]}
+                            placeholder="Enter colour"
+                            placeholderTextColor={PLACEHOLDER_COLOR}
+                            autoCapitalize="words"
+                            maxFontSizeMultiplier={1.1}
+                        />
+                    )}
 
                 </View>
 
@@ -934,6 +979,7 @@ export default function PetDetailsScreen() {
                                 style={
                                     styles.modalTitle
                                 }
+                                maxFontSizeMultiplier={1.1}
                             >
                                 {dropdown ===
                                     "breed"
@@ -953,7 +999,7 @@ export default function PetDetailsScreen() {
                             >
                                 <Ionicons
                                     name="close"
-                                    size={23}
+                                    size={s(23)}
                                     color="#382018"
                                 />
                             </Pressable>
@@ -1018,6 +1064,7 @@ export default function PetDetailsScreen() {
                                                 style={
                                                     styles.optionText
                                                 }
+                                                maxFontSizeMultiplier={1.1}
                                             >
                                                 {item}
                                             </Text>
@@ -1025,7 +1072,7 @@ export default function PetDetailsScreen() {
                                             {isSelected && (
                                                 <Ionicons
                                                     name="checkmark"
-                                                    size={19}
+                                                    size={s(19)}
                                                     color="#FF7A00"
                                                 />
                                             )}
@@ -1090,9 +1137,10 @@ const FieldLabel = ({
             style={[
                 styles.fieldLabel,
                 {
-                    marginTop,
+                    marginTop: s(marginTop),
                 },
             ]}
+            maxFontSizeMultiplier={1.1}
         >
             {text}
         </Text>
@@ -1140,7 +1188,7 @@ const DropdownField = ({
             ) : icon ? (
                 <Ionicons
                     name={icon}
-                    size={16}
+                    size={s(16)}
                     color="#5C4033"
                     style={
                         styles.fieldIcon
@@ -1155,13 +1203,14 @@ const DropdownField = ({
                     styles.placeholderText,
                 ]}
                 numberOfLines={1}
+                maxFontSizeMultiplier={1.1}
             >
                 {value || placeholder}
             </Text>
 
             <Ionicons
                 name="chevron-down"
-                size={16}
+                size={s(16)}
                 color="#9B765F"
             />
 
@@ -1206,11 +1255,20 @@ const getColourValue = (
         case "Chocolate":
             return "#5A321F";
 
+        case "Orange":
+            return "#F28C28";
+
+        case "Beige":
+            return "#E8D5B5";
+
         case "Black & White":
             return "#777777";
 
         case "Brown & White":
             return "#A06A3B";
+
+        case "Brown & Beige":
+            return "#BFA07A";
 
         default:
             return "#FF7A00";
@@ -1265,7 +1323,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingTop:
             height * 0.112,
-        paddingBottom: 110,
+        paddingBottom: s(110),
     },
 
     /* =========================================================
@@ -1274,16 +1332,16 @@ const styles = StyleSheet.create({
 
     header: {
         alignItems: "center",
-        paddingHorizontal: 18,
+        paddingHorizontal: s(18),
     },
 
     title: {
         fontFamily:
             "Fredoka_600SemiBold",
 
-        fontSize: 32,
+        fontSize: s(32),
 
-        lineHeight: 36,
+        lineHeight: s(36),
 
         color: "#FF7F00",
 
@@ -1291,14 +1349,14 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        marginTop: 5,
+        marginTop: s(5),
 
         fontFamily:
             "Nunito_700Bold",
 
-        fontSize: 20,
+        fontSize: s(20),
 
-        lineHeight:28,
+        lineHeight: s(28),
 
         color: "#382018",
 
@@ -1313,14 +1371,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
 
-        marginTop: 28,
+        marginTop: s(28),
 
-        height: 130,
+        height: s(130),
     },
 
     petImageWrapper: {
-        width: 125,
-        height: 125,
+        width: s(125),
+        height: s(125),
 
         position: "relative",
 
@@ -1329,8 +1387,8 @@ const styles = StyleSheet.create({
     },
 
     petImageCircle: {
-        width: 125,
-        height: 125,
+        width: s(125),
+        height: s(125),
 
         borderRadius: 100,
 
@@ -1356,12 +1414,12 @@ const styles = StyleSheet.create({
     },
 
     photoHint: {
-        marginTop: 3,
+        marginTop: s(3),
 
         fontFamily:
             "Nunito_700Bold",
 
-        fontSize: 10,
+        fontSize: s(10),
 
         color: "#FF7A00",
     },
@@ -1375,13 +1433,13 @@ const styles = StyleSheet.create({
     cameraButton: {
         position: "absolute",
 
-        right: 7,
+        right: s(7),
 
-        bottom: -10,
+        bottom: s(-10),
 
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: s(40),
+        height: s(40),
+        borderRadius: s(20),
 
         backgroundColor: "#FFFFFF",
 
@@ -1394,10 +1452,10 @@ const styles = StyleSheet.create({
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: s(2),
         },
         shadowOpacity: 0.16,
-        shadowRadius: 4,
+        shadowRadius: s(4),
 
         elevation: 4,
 
@@ -1407,13 +1465,13 @@ const styles = StyleSheet.create({
     removePhotoButton: {
         position: "absolute",
 
-        right: 5,
-        top: 5,
+        right: s(5),
+        top: s(5),
 
-        width: 29,
-        height: 29,
+        width: s(29),
+        height: s(29),
 
-        borderRadius: 15,
+        borderRadius: s(15),
 
         backgroundColor: "#FF4B32",
 
@@ -1435,45 +1493,53 @@ const styles = StyleSheet.create({
     form: {
         width: "100%",
 
-        paddingHorizontal: 21,
+        paddingHorizontal: s(21),
 
-        marginTop: 20,
+        marginTop: s(20),
     },
 
+    /* label: 11 -> 13 */
     fieldLabel: {
         fontFamily:
             "Nunito_700Bold",
 
-        fontSize: 11,
-        lineHeight: 14,
+        fontSize: s(13),
+        lineHeight: s(17),
 
         color: "#382018",
 
-        marginBottom: 4,
+        marginBottom: s(5),
     },
 
+    /* height: 38 -> 42, text 14 SemiBold */
     input: {
         width: "100%",
 
-        height: 38,
+        height: s(42),
 
         borderWidth: 1,
         borderColor: "#FF7A00",
 
-        borderRadius: 9,
+        borderRadius: s(9),
 
         backgroundColor: "#FFFFFF",
 
-        paddingHorizontal: 14,
+        paddingHorizontal: s(14),
 
         fontFamily:
-            "Nunito_700Bold",
+            "Nunito_600SemiBold",
 
-        fontSize: 14,
+        fontSize: s(14),
 
         color: "#382018",
 
         paddingVertical: 0,
+
+        textAlignVertical: "center",
+    },
+
+    otherInput: {
+        marginTop: s(8),
     },
 
     /* =========================================================
@@ -1481,12 +1547,12 @@ const styles = StyleSheet.create({
     ========================================================= */
 
     dropdown: {
-        height: 38,
+        height: s(42),
 
         borderWidth: 1,
         borderColor: "#FF7A00",
 
-        borderRadius: 9,
+        borderRadius: s(9),
 
         backgroundColor: "#FFFFFF",
 
@@ -1494,41 +1560,43 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        paddingHorizontal: 11,
+        paddingHorizontal: s(11),
     },
 
     dropdownText: {
         flex: 1,
 
         fontFamily:
-            "Nunito_700Bold",
+            "Nunito_600SemiBold",
 
-        fontSize: 14,
+        fontSize: s(14),
 
         color: "#382018",
 
-        marginLeft: 6,
+        marginLeft: s(6),
     },
-   dobDropdown: {
-    backgroundColor: "#fff",
-},
 
-dobDropdownPressed: {
-    backgroundColor: "#FF7A00",
-},
+    dobDropdown: {
+        backgroundColor: "#fff",
+    },
+
+    dobDropdownPressed: {
+        backgroundColor: "#FF7A00",
+    },
+
     placeholderText: {
-        color: "#A58C7F",
+        color: PLACEHOLDER_COLOR,
     },
 
     fieldIcon: {
-        marginRight: 1,
+        marginRight: s(1),
     },
 
     colourDot: {
-        width: 15,
-        height: 15,
+        width: s(15),
+        height: s(15),
 
-        borderRadius: 8,
+        borderRadius: s(8),
     },
 
     /* =========================================================
@@ -1538,21 +1606,22 @@ dobDropdownPressed: {
     twoColumnRow: {
         flexDirection: "row",
 
-        gap: 18,
+        gap: s(18),
 
-        marginTop: 18,
+        marginTop: s(18),
     },
 
     /*
-     * Gender ko thoda wider kiya hai.
+     * Teeno columns equal (flex: 1) taaki dono rows
+     * (Gender/DOB aur Age/Weight) seedhe aligned rahein.
      */
 
     genderColumn: {
-        flex: 1.12,
+        flex: 1,
     },
 
     dateColumn: {
-        flex: 1.25,
+        flex: 1,
     },
 
     halfColumn: {
@@ -1566,27 +1635,25 @@ dobDropdownPressed: {
     genderRow: {
         flexDirection: "row",
 
-        gap: 7,
+        gap: s(7),
     },
 
     genderButton: {
         flex: 1,
 
-        minWidth: 71,
-
-        height: 38,
+        height: s(42),
 
         borderWidth: 1,
         borderColor: "#FF7A00",
 
-        borderRadius: 9,
+        borderRadius: s(9),
 
         alignItems: "center",
         justifyContent: "center",
 
         flexDirection: "row",
 
-        gap: 4,
+        gap: s(4),
 
         backgroundColor: "#FFFFFF",
     },
@@ -1599,7 +1666,7 @@ dobDropdownPressed: {
         fontFamily:
             "Nunito_700Bold",
 
-        fontSize: 11,
+        fontSize: s(13),
 
         color: "#5C4033",
     },
@@ -1613,12 +1680,12 @@ dobDropdownPressed: {
     ========================================================= */
 
     weightInputWrapper: {
-        height: 38,
-        marginLeft: -8,
+        height: s(42),
+
         borderWidth: 1,
         borderColor: "#FF7A00",
 
-        borderRadius: 9,
+        borderRadius: s(9),
 
         backgroundColor: "#FFFFFF",
 
@@ -1626,7 +1693,7 @@ dobDropdownPressed: {
 
         alignItems: "center",
 
-        paddingHorizontal: 10,
+        paddingHorizontal: s(11),
     },
 
     weightInput: {
@@ -1634,22 +1701,24 @@ dobDropdownPressed: {
 
         height: "100%",
 
-        paddingHorizontal: 5,
+        paddingHorizontal: s(5),
         paddingVertical: 0,
 
         fontFamily:
-            "Nunito_700Bold",
+            "Nunito_600SemiBold",
 
-        fontSize: 14,
+        fontSize: s(14),
 
         color: "#382018",
+
+        textAlignVertical: "center",
     },
 
     unitText: {
         fontFamily:
-            "Nunito_700Bold",
+            "Nunito_600SemiBold",
 
-        fontSize: 12,
+        fontSize: s(13),
 
         color: "#8B6D5C",
     },
@@ -1743,7 +1812,7 @@ dobDropdownPressed: {
         width: "100%",
         height: Math.min(height * 0.061, 52),
 
-        borderRadius: 15,
+        borderRadius: s(15),
 
         alignSelf: "center",
 
@@ -1751,10 +1820,10 @@ dobDropdownPressed: {
         shadowColor: "#FF7A00",
         shadowOffset: {
             width: 0,
-            height: 7,
+            height: s(7),
         },
         shadowOpacity: 0.20,
-        shadowRadius: 12,
+        shadowRadius: s(12),
 
         elevation: 5,
     },
@@ -1765,11 +1834,11 @@ dobDropdownPressed: {
 
         top: "-30%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft: 20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },
@@ -1790,16 +1859,16 @@ dobDropdownPressed: {
     dropdownModal: {
         backgroundColor: "#FFFFFF",
 
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: s(24),
+        borderTopRightRadius: s(24),
 
         maxHeight:
             height * 0.65,
 
-        paddingTop: 18,
-        paddingBottom: 25,
+        paddingTop: s(18),
+        paddingBottom: s(25),
 
-        paddingHorizontal: 20,
+        paddingHorizontal: s(20),
     },
 
     modalHeader: {
@@ -1810,7 +1879,7 @@ dobDropdownPressed: {
         justifyContent:
             "space-between",
 
-        paddingBottom: 12,
+        paddingBottom: s(12),
 
         borderBottomWidth: 1,
 
@@ -1822,23 +1891,23 @@ dobDropdownPressed: {
         fontFamily:
             "Fredoka_600SemiBold",
 
-        fontSize: 21,
+        fontSize: s(21),
 
         color: "#FF7A00",
     },
 
     optionsScroll: {
-        marginTop: 5,
+        marginTop: s(5),
     },
 
     option: {
-        minHeight: 48,
+        minHeight: s(48),
 
         flexDirection: "row",
 
         alignItems: "center",
 
-        paddingHorizontal: 8,
+        paddingHorizontal: s(8),
 
         borderBottomWidth: 1,
 
@@ -1850,20 +1919,20 @@ dobDropdownPressed: {
         flex: 1,
 
         fontFamily:
-            "Nunito_700Bold",
+            "Nunito_600SemiBold",
 
-        fontSize: 14,
+        fontSize: s(14),
 
         color: "#382018",
 
-        marginLeft: 6,
+        marginLeft: s(6),
     },
 
     optionDot: {
-        width: 17,
-        height: 17,
+        width: s(17),
+        height: s(17),
 
-        borderRadius: 9,
+        borderRadius: s(9),
 
         borderWidth: 1,
 

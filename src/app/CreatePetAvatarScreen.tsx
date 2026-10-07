@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     Dimensions,
     Image,
@@ -23,6 +23,23 @@ const DESIGN_WIDTH = 393;
 const DESIGN_HEIGHT = 852;
 const SCALE = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
 
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, image,
+ * icon size...) is multiplied by the same scale factor, so the screen
+ * looks like the design (393 x 852) on every device.
+ *
+ * - Small phones  -> everything shrinks proportionally
+ * - Medium phones -> ~ same as design
+ * - Large phones  -> grows proportionally, capped at 1.3
+ */
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
+
+type AvatarOption = "existing" | "upload";
+
 export default function CreatePetAvatarScreen() {
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
@@ -30,7 +47,18 @@ export default function CreatePetAvatarScreen() {
         Nunito_700Bold,
     });
 
+    // Sirf ek option select hoga (default: existing)
+    const [selected, setSelected] = useState<AvatarOption>("existing");
+
     if (!fontsLoaded) return null;
+
+    const handleContinue = () => {
+        if (selected === "existing") {
+            router.push("/ChoosePetAvatar");
+        } else {
+            router.push("/CreateMyselfScreen");
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -44,25 +72,28 @@ export default function CreatePetAvatarScreen() {
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.header}>
-                    <Text style={styles.title}>Create Your Pet Avatar</Text>
-                    <Text style={styles.subtitle}>
+                    <Text style={styles.title} maxFontSizeMultiplier={1.1}>Create Your Pet Avatar</Text>
+                    <Text style={styles.subtitle} maxFontSizeMultiplier={1.1}>
                         Bring your pet to life with a cute avatar!
                     </Text>
                 </View>
 
                 <Pressable
-                    onPress={() => console.log("Choose from existing")}
+                    onPress={() => setSelected("existing")}
                     style={({ pressed }) => [
                         styles.optionCard,
                         styles.existingCard,
+                        selected === "existing"
+                            ? styles.cardSelected
+                            : styles.cardUnselected,
                         pressed && styles.cardPressed,
                     ]}
                 >
                     <View style={styles.cardTextArea}>
-                        <Text style={styles.optionTitle}>
+                        <Text style={styles.optionTitle} maxFontSizeMultiplier={1.1}>
                             Choose from existing
                         </Text>
-                        <Text style={styles.optionDescription}>
+                        <Text style={styles.optionDescription} maxFontSizeMultiplier={1.1}>
                             Pick a pre-made avatar{"\n"}
                             that looks like your pet.
                         </Text>
@@ -75,26 +106,29 @@ export default function CreatePetAvatarScreen() {
                     />
 
                     <View style={styles.arrowButton}>
-                        <Ionicons name="chevron-forward" size={27} color="#FF7F00" />
+                        <Ionicons name="chevron-forward" size={s(27)} color="#FF7F00" />
                     </View>
                 </Pressable>
 
                 <Pressable
-                    onPress={() => router.push("/CreateMyselfScreen")}
+                    onPress={() => setSelected("upload")}
                     style={({ pressed }) => [
                         styles.optionCard,
                         styles.customCard,
+                        selected === "upload"
+                            ? styles.cardSelected
+                            : styles.cardUnselected,
                         pressed && styles.cardPressed,
                     ]}
                 >
                     <View style={styles.cardTextArea}>
-                        <Text style={styles.optionTitle}>
-                            Create by myself
+                        <Text style={styles.optionTitle} maxFontSizeMultiplier={1.1}>
+                            Upload Myself
                         </Text>
-                        <Text style={styles.optionDescription}>
-                            Customize every detail{"\n"}
-                            and make it unique!
-                        </Text>
+                        <Text style={styles.optionDescription} maxFontSizeMultiplier={1.1}>
+    Upload your pet's photo{"\n"}
+    and make it your own!
+</Text>
                     </View>
 
                     <Image
@@ -104,42 +138,17 @@ export default function CreatePetAvatarScreen() {
                     />
 
                     <View style={styles.arrowButton}>
-                        <Ionicons name="chevron-forward" size={27} color="#FF7F00" />
+                        <Ionicons name="chevron-forward" size={s(27)} color="#FF7F00" />
                     </View>
                 </Pressable>
 
-                <View style={styles.whySection}>
-                    <Text style={styles.whyTitle}>Why customize?</Text>
-
-                    <View style={styles.whyContent}>
-                        <View style={styles.benefitsColumn}>
-                            <Benefit
-                                icon="lock-closed-outline"
-                                text={<>Unlock more items{"\n"}through rewards</>}
-                            />
-                            <Benefit
-                                icon="sparkles-outline"
-                                text={<>Make your pet{"\n"}truly one of a kind</>}
-                            />
-                            <Benefit
-                                icon="gift-outline"
-                                text={<>More accessories,{"\n"}background and stylish!</>}
-                            />
-                        </View>
-
-                        <Image
-                            source={require("../../assets/images/createAvatar/dog.png")}
-                            resizeMode="contain"
-                            style={styles.dogImage}
-                        />
-                    </View>
-                </View>
+          
             </ScrollView>
 
             <View style={styles.bottomButtonContainer}>
                 <PrimaryButton
                     title="Continue"
-                    onPress={() => router.push("/ChoosePetAvatar")}
+                    onPress={handleContinue}
                     style={styles.continueButton}
                     icon={
                         <Image
@@ -162,9 +171,9 @@ interface BenefitProps {
 const Benefit = ({ icon, text }: BenefitProps) => (
     <View style={styles.benefitRow}>
         <View style={styles.benefitIconBox}>
-            <Ionicons name={icon} size={21} color="#381B0E" />
+            <Ionicons name={icon} size={s(21)} color="#381B0E" />
         </View>
-        <Text style={styles.benefitText}>{text}</Text>
+        <Text style={styles.benefitText} maxFontSizeMultiplier={1.1}>{text}</Text>
     </View>
 );
 
@@ -177,57 +186,64 @@ const styles = StyleSheet.create({
 
     scrollContent: {
         paddingTop: height * 0.112,
-        paddingHorizontal: 10,
-        paddingBottom: 105,
+        paddingHorizontal: s(10),
+        paddingBottom: s(105),
     },
 
     header: {
         alignItems: "center",
-        marginBottom: 57,
+        marginBottom: s(57),
     },
 
     title: {
         fontFamily: "Fredoka_600SemiBold",
-        fontSize: 32,
-        lineHeight: 36,
+        fontSize: s(32),
+        lineHeight: s(36),
         color: "#FF7F00",
         textAlign: "center",
         letterSpacing: 0,
     },
 
     subtitle: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#381B0E",
         textAlign: "center",
     },
 
     optionCard: {
         width: "100%",
-        height: 102,
-        borderRadius: 25,
+        height: s(102),
+        borderRadius: s(25),
         flexDirection: "row",
         alignItems: "center",
         position: "relative",
-        paddingLeft: 18,
-        paddingRight: 68,
-        marginBottom: 45,
-        marginTop:-30,
+        paddingLeft: s(18),
+        paddingRight: s(68),
+        marginBottom: s(45),
+        marginTop: s(-30),
     },
 
-    existingCard: {
+    existingCard: {},
+
+    customCard: {
+        marginTop: s(10),
+    },
+
+    // Selected card: orange look
+    cardSelected: {
         backgroundColor: "#FFE0C4",
         borderWidth: 1.5,
         borderColor: "#FF7F00",
     },
 
-    customCard: {
+    // Unselected card: white look (pehle wale Create myself jaisa)
+    cardUnselected: {
         backgroundColor: "#FFFCF9",
         borderWidth: 1,
         borderColor: "#FFDCC0",
-        marginTop:10
     },
 
     cardPressed: {
@@ -242,45 +258,45 @@ const styles = StyleSheet.create({
 
     optionTitle: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 17,
-        lineHeight: 28,
+        fontSize: s(17),
+        lineHeight: s(28),
         color: "#FF7F00",
     },
 
     optionDescription: {
-        marginTop: 2,
+        marginTop: s(2),
         fontFamily: "Nunito_700Bold",
-        fontSize: 15,
-        lineHeight: 24,
+        fontSize: s(15),
+        lineHeight: s(24),
         color: "#381B0E",
     },
 
     catImage: {
         position: "absolute",
-        width: 100,
-        height: 100,
-        right: 28,
-        bottom: -1,
+        width: s(100),
+        height: s(100),
+        right: s(28),
+        bottom: s(-1),
         zIndex: 2,
     },
 
     paintImage: {
         position: "absolute",
-        width: 92,
-        height: 92,
-        right: 43,
-        bottom: 5,
+        width: s(92),
+        height: s(92),
+        right: s(43),
+        bottom: s(5),
         zIndex: 2,
     },
 
     arrowButton: {
         position: "absolute",
-        right: -13,
+        right: s(-13),
         top: "50%",
-        marginTop: -23,
-        width: 40,
-        height: 40,
-        borderRadius: 23,
+        marginTop: s(-23),
+        width: s(40),
+        height: s(40),
+        borderRadius: s(23),
         backgroundColor: "#FFFFFF",
         borderWidth: 1.5,
         borderColor: "#FF7F00",
@@ -290,20 +306,20 @@ const styles = StyleSheet.create({
     },
 
     whySection: {
-        marginTop: -9,
-        paddingHorizontal: 18,
+        marginTop: s(-9),
+        paddingHorizontal: s(18),
     },
 
     whyTitle: {
         fontFamily: "Nunito_700Bold",
-        fontSize: 20,
-        lineHeight: 28,
+        fontSize: s(20),
+        lineHeight: s(28),
         color: "#FF7F00",
-        marginBottom: 9,
+        marginBottom: s(9),
     },
 
     whyContent: {
-        minHeight: 170,
+        minHeight: s(170),
         flexDirection: "row",
         position: "relative",
     },
@@ -316,36 +332,36 @@ const styles = StyleSheet.create({
     benefitRow: {
         flexDirection: "row",
         alignItems: "flex-start",
-        minHeight: 55,
-        marginBottom: 4,
+        minHeight: s(55),
+        marginBottom: s(4),
     },
 
     benefitIconBox: {
-        width: 38,
-        height: 38,
-        marginLeft:-10,
-        marginRight: 10,
+        width: s(38),
+        height: s(38),
+        marginLeft: s(-10),
+        marginRight: s(10),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#FFF9F4",
-        borderRadius: 5,
+        borderRadius: s(5),
     },
 
     benefitText: {
         flex: 1,
-        paddingTop: 1,
+        paddingTop: s(1),
         fontFamily: "Nunito_400Regular",
-        fontSize: 15,
-        lineHeight: 19,
+        fontSize: s(15),
+        lineHeight: s(19),
         color: "#381B0E",
     },
 
     dogImage: {
         position: "absolute",
-        width: 135,
-        height: 160,
-        right: -4,
-        top: -16,
+        width: s(135),
+        height: s(160),
+        right: s(-4),
+        top: s(-16),
         zIndex: 2,
     },
 
@@ -386,16 +402,16 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        paddingHorizontal: 6,
-        paddingBottom: 27,
+        paddingHorizontal: s(6),
+        paddingBottom: s(27),
         backgroundColor: "transparent",
         zIndex: 20,
     },
 
     continueButton: {
         width: "100%",
-        height: 50,
-        borderRadius: 15,
+        height: s(50),
+        borderRadius: s(15),
     },
 
     buttonPaw: {
@@ -404,13 +420,12 @@ const styles = StyleSheet.create({
 
         top: "-30%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft: 20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },
 });
-

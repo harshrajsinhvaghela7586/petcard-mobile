@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Dimensions,
   Image,
   Modal,
   Pressable,
@@ -18,6 +19,32 @@ import {
   useFonts,
 } from "@expo-google-fonts/nunito";
 import PrimaryButton from "@/components/Button/PrimaryButton";
+import { router } from "expo-router";
+
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, image,
+ * icon size...) is multiplied by the same scale factor, so the screen
+ * looks like the design (393 x 852) on every device.
+ *
+ * - Small phones  -> everything shrinks proportionally
+ * - Medium phones -> ~ same as design
+ * - Large phones  -> grows proportionally, capped at 1.3
+ */
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+const DESIGN_WIDTH = 393;
+const DESIGN_HEIGHT = 852;
+
+const SCALE = Math.min(
+  SCREEN_WIDTH / DESIGN_WIDTH,
+  SCREEN_HEIGHT / DESIGN_HEIGHT
+);
+
+const UI_SCALE = Math.min(SCALE, 1.3);
+
+const s = (size: number) => size * UI_SCALE;
 
 type HealthField = "bloodType" | "allergies" | "medicalConditions" | "specialNotes";
 
@@ -116,7 +143,7 @@ export default function OptionalHealthBasicsScreen({
 
     return (
       <View key={field} style={styles.fieldCard}>
-        <Text style={styles.fieldTitle}>{meta.title}</Text>
+        <Text style={styles.fieldTitle} maxFontSizeMultiplier={1.1}>{meta.title}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${meta.title}, ${value || meta.placeholder}`}
@@ -125,11 +152,12 @@ export default function OptionalHealthBasicsScreen({
         >
           <Text
             numberOfLines={1}
+            maxFontSizeMultiplier={1.1}
             style={[styles.fieldValue, !value && styles.placeholder]}
           >
             {value || meta.placeholder}
           </Text>
-          <Ionicons name="chevron-down" size={17} color="#A77C59" />
+          <Ionicons name="chevron-down" size={s(17)} color="#A77C59" />
         </Pressable>
       </View>
     );
@@ -172,8 +200,8 @@ export default function OptionalHealthBasicsScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Optional Health Basics</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.title} maxFontSizeMultiplier={1.1}>Optional Health Basics</Text>
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.1}>
             Add a few health details to help us take better care of your pet.
           </Text>
         </View>
@@ -186,7 +214,7 @@ export default function OptionalHealthBasicsScreen({
         </View>
 
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
+          <Text style={styles.infoText} maxFontSizeMultiplier={1.1}>
             You can always add or update these details later in the Health section.
           </Text>
         </View>
@@ -195,7 +223,7 @@ export default function OptionalHealthBasicsScreen({
       <View style={styles.bottomButtonContainer}>
         <PrimaryButton
           title="Continue"
-          onPress={() => onContinue(details)}
+          onPress={() => router.push("/RemindersetupScreen")}
           style={styles.continueButton}
           icon={
             <Image
@@ -211,7 +239,7 @@ export default function OptionalHealthBasicsScreen({
           hitSlop={10}
           style={styles.skipButton}
         >
-          <Text style={styles.skipText}>Skip for now</Text>
+          <Text style={styles.skipText} maxFontSizeMultiplier={1.1}>Skip for now</Text>
         </Pressable>
       </View>
 
@@ -224,14 +252,14 @@ export default function OptionalHealthBasicsScreen({
         <Pressable style={styles.modalBackdrop} onPress={() => setActiveField(null)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{activeMeta?.title}</Text>
+              <Text style={styles.modalTitle} maxFontSizeMultiplier={1.1}>{activeMeta?.title}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 onPress={() => setActiveField(null)}
                 hitSlop={10}
               >
-                <Ionicons name="close" size={22} color="#381B0E" />
+                <Ionicons name="close" size={s(22)} color="#381B0E" />
               </Pressable>
             </View>
 
@@ -244,6 +272,7 @@ export default function OptionalHealthBasicsScreen({
                   placeholderTextColor="#A69A91"
                   multiline
                   textAlignVertical="top"
+                  maxFontSizeMultiplier={1.1}
                   style={styles.notesInput}
                 />
                 <Pressable
@@ -253,7 +282,7 @@ export default function OptionalHealthBasicsScreen({
                     setActiveField(null);
                   }}
                 >
-                  <Text style={styles.doneButtonText}>Save Notes</Text>
+                  <Text style={styles.doneButtonText} maxFontSizeMultiplier={1.1}>Save Notes</Text>
                 </Pressable>
               </>
             ) : (
@@ -274,9 +303,9 @@ export default function OptionalHealthBasicsScreen({
                       onPress={() => selectOption(option)}
                       style={styles.optionRow}
                     >
-                      <Text style={styles.optionText}>{option}</Text>
+                      <Text style={styles.optionText} maxFontSizeMultiplier={1.1}>{option}</Text>
                       {selected ? (
-                        <Ionicons name="checkmark-circle" size={20} color="#FF7F00" />
+                        <Ionicons name="checkmark-circle" size={s(20)} color="#FF7F00" />
                       ) : (
                         <View style={styles.optionCircle} />
                       )}
@@ -288,7 +317,7 @@ export default function OptionalHealthBasicsScreen({
                     style={styles.doneButton}
                     onPress={() => setActiveField(null)}
                   >
-                    <Text style={styles.doneButtonText}>Done</Text>
+                    <Text style={styles.doneButtonText} maxFontSizeMultiplier={1.1}>Done</Text>
                   </Pressable>
                 )}
               </ScrollView>
@@ -308,41 +337,41 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: 10,
-    paddingBottom: 170,
+    paddingHorizontal: s(10),
+    paddingBottom: s(170),
   },
   header: {
     alignItems: "center",
-    paddingHorizontal: 5,
-    marginBottom: 30,
+    paddingHorizontal: s(5),
+    marginBottom: s(30),
   },
   title: {
     fontFamily: "Fredoka_600SemiBold",
-    fontSize: 32,
-    lineHeight: 36,
+    fontSize: s(32),
+    lineHeight: s(36),
     color: "#FF7F00",
     textAlign: "center",
     letterSpacing: 0,
   },
   subtitle: {
-    marginTop: 2,
+    marginTop: s(2),
     fontFamily: "Nunito_700Bold",
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: s(20),
+    lineHeight: s(28),
     color: "#381B0E",
     textAlign: "center",
   },
   fields: {
-    gap: 5,
-    paddingHorizontal: 12,
+    gap: s(5),
+    paddingHorizontal: s(12),
   },
   fieldCard: {
     width: "100%",
-    minHeight: 74,
-    paddingHorizontal: 29,
-    paddingTop: 12,
-    paddingBottom: 10,
-    borderRadius: 11,
+    minHeight: s(74),
+    paddingHorizontal: s(29),
+    paddingTop: s(12),
+    paddingBottom: s(10),
+    borderRadius: s(11),
     borderWidth: 1,
     borderColor: "#FF7F00",
     backgroundColor: "#FFFCF9",
@@ -351,16 +380,16 @@ const styles = StyleSheet.create({
   fieldTitle: {
     color: "#381B0E",
     fontFamily: "Nunito_700Bold",
-    fontSize: 16,
-    lineHeight: 20,
-    marginBottom: 1,
+    fontSize: s(16),
+    lineHeight: s(20),
+    marginBottom: s(1),
   },
   fieldInput: {
-    minHeight: 31,
+    minHeight: s(31),
     borderWidth: 1,
     borderColor: "#FFDCC0",
-    borderRadius: 10,
-    paddingHorizontal: 10,
+    borderRadius: s(10),
+    paddingHorizontal: s(10),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -374,55 +403,55 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#381B0E",
     fontFamily: "Nunito_400Regular",
-    fontSize: 13,
-    paddingRight: 8,
+    fontSize: s(13),
+    paddingRight: s(8),
   },
   placeholder: { color: "#A69A91" },
   infoBox: {
-    marginTop: 80,
-    minHeight: 74,
-    paddingVertical: 15,
-    borderRadius: 10,
+    marginTop: s(80),
+    minHeight: s(74),
+    paddingVertical: s(15),
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: "#FF7F00",
     backgroundColor: "#FFE0C4",
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 12,
+    marginHorizontal: s(12),
   },
   infoText: {
     color: "#381B0E",
     fontFamily: "Nunito_700Bold",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: s(16),
+    lineHeight: s(20),
     textAlign: "center",
-    paddingHorizontal:25
+    paddingHorizontal: s(25),
   },
   backgroundPaw: {
     position: "absolute",
-    width: 72,
-    height: 72,
+    width: 72 * SCALE,
+    height: 72 * SCALE,
     opacity: 0.075,
     zIndex: 0,
   },
   pawTopLeft: {
-    top: 28,
-    left: 22,
+    top: 28 * SCALE,
+    left: 22 * SCALE,
     transform: [{ rotate: "-12deg" }],
   },
   pawTopRight: {
-    top: 150,
-    right: -15,
+    top: 150 * SCALE,
+    right: -15 * SCALE,
     transform: [{ rotate: "15deg" }],
   },
   pawMiddleRight: {
-    top: 390,
+    top: 390 * SCALE,
     right: 0,
     transform: [{ rotate: "-8deg" }],
   },
   pawBottomRight: {
-    bottom: 10,
-    right: 20,
+    bottom: 10 * SCALE,
+    right: 20 * SCALE,
     transform: [{ rotate: "-12deg" }],
   },
   bottomButtonContainer: {
@@ -430,48 +459,48 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 6,
-    paddingBottom: 10,
+    paddingHorizontal: s(6),
+    paddingBottom: s(10),
     backgroundColor: "transparent",
     zIndex: 20,
     alignItems: "center",
   },
   continueButton: {
     width: "100%",
-    height: 50,
-    borderRadius: 15,
+    height: s(50),
+    borderRadius: s(15),
   },
   buttonPaw: {
     position: "absolute",
     top: "-30%",
-    width: 40,
-    height: 40,
-    marginTop: -11.5,
-    marginLeft: 20,
+    width: s(40),
+    height: s(40),
+    marginTop: s(-11.5),
+    marginLeft: s(20),
     zIndex: 10,
   },
   skipButton: {
     alignSelf: "center",
-    marginTop: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
+    marginTop: s(9),
+    paddingHorizontal: s(12),
+    paddingVertical: s(2),
   },
   skipText: {
     color: "#381B0E",
     fontFamily: "Nunito_700Bold",
-    fontWeight:900,
-    fontSize: 14,
+    fontWeight: 900,
+    fontSize: s(14),
   },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(25, 15, 10, 0.32)",
     justifyContent: "center",
-    paddingHorizontal: 25,
+    paddingHorizontal: s(25),
   },
   modalCard: {
     maxHeight: "75%",
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: s(16),
+    padding: s(18),
     backgroundColor: "#FFFCF9",
     borderWidth: 1,
     borderColor: "#FFDCC0",
@@ -480,58 +509,58 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: s(12),
   },
   modalTitle: {
     color: "#381B0E",
     fontFamily: "Nunito_700Bold",
-    fontSize: 18,
+    fontSize: s(18),
   },
-  optionsList: { maxHeight: 360 },
-  optionsContent: { paddingBottom: 4 },
+  optionsList: { maxHeight: s(360) },
+  optionsContent: { paddingBottom: s(4) },
   optionRow: {
-    minHeight: 45,
+    minHeight: s(45),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#F0DCCB",
-    paddingHorizontal: 4,
+    paddingHorizontal: s(4),
   },
   optionText: {
     color: "#381B0E",
     fontFamily: "Nunito_700Bold",
-    fontSize: 15,
+    fontSize: s(15),
   },
   optionCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: s(18),
+    height: s(18),
+    borderRadius: s(9),
     borderWidth: 1,
     borderColor: "#D7BDA8",
   },
   notesInput: {
-    minHeight: 115,
+    minHeight: s(115),
     borderWidth: 1,
     borderColor: "#FFDCC0",
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: s(10),
+    padding: s(12),
     color: "#381B0E",
     fontFamily: "Nunito_400Regular",
-    fontSize: 14,
+    fontSize: s(14),
     backgroundColor: "#FFFFFF",
   },
   doneButton: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 13,
-    minHeight: 42,
-    borderRadius: 10,
+    marginTop: s(13),
+    minHeight: s(42),
+    borderRadius: s(10),
     backgroundColor: "#FF7F00",
   },
   doneButtonText: {
     color: "#FFFFFF",
     fontFamily: "Nunito_700Bold",
-    fontSize: 14,
+    fontSize: s(14),
   },
 });

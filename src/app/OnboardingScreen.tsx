@@ -30,6 +30,26 @@ const DESIGN_LEFT =
 const DESIGN_TOP =
     (height - DESIGN_HEIGHT * DESIGN_SCALE) / 2;
 
+/*
+ * RESPONSIVE HELPER
+ *
+ * Every fixed size (font, padding, margin, height, radius, gap...)
+ * is multiplied by the same scale factor, so the layout looks
+ * exactly like the design (393 x 852) on every screen size.
+ *
+ * - Small phones  -> everything shrinks proportionally
+ * - Big phones    -> capped at 1.3 so nothing looks oversized
+ */
+const SCALE = Math.min(DESIGN_SCALE, 1.3);
+
+const s = (size: number) => size * SCALE;
+
+/*
+ * Small screens (e.g. 360 x 640, iPhone SE etc.)
+ * Normal phones keep the exact original spacing.
+ */
+const IS_SMALL_DEVICE = height < 700;
+
 const slides = [
     {
         image: require("../../assets/images/splash1.png"),
@@ -86,7 +106,7 @@ export default function OnboardingScreen({
 
                 return prev + 1;
             });
-        }, 4000);
+        }, 1400);
 
         return () => clearInterval(timer);
     }, []);
@@ -220,13 +240,19 @@ export default function OnboardingScreen({
                         {/* TOP CONTENT */}
                         <View style={styles.topSection}>
                             <View style={styles.titleContainer}>
-                                <Text style={styles.title}>
+                                <Text
+                                    style={styles.title}
+                                    maxFontSizeMultiplier={1.1}
+                                >
                                     {item.title}
                                 </Text>
                             </View>
 
                             <View style={styles.descriptionContainer}>
-                                <Text style={styles.description}>
+                                <Text
+                                    style={styles.description}
+                                    maxFontSizeMultiplier={1.1}
+                                >
                                     {item.description}
                                 </Text>
                             </View>
@@ -276,7 +302,12 @@ export default function OnboardingScreen({
                     onPress={handleSkip}
                     style={styles.skipButton}
                 >
-                    <Text style={styles.skipText}>Skip</Text>
+                    <Text
+                        style={styles.skipText}
+                        maxFontSizeMultiplier={1.1}
+                    >
+                        Skip
+                    </Text>
                 </Pressable>
 
                 {/* DOTS */}
@@ -326,32 +357,37 @@ const styles = StyleSheet.create({
 
     titleContainer: {
         width: "100%",
-        height: 92,
-        marginTop: "15%",
+        // minHeight (not fixed height) so the title is never clipped
+        minHeight: s(92),
+        // was "15%" of width (= 59px on 393 wide design)
+        marginTop: s(59),
         alignItems: "center",
         justifyContent: "center",
+        overflow: "visible",
     },
 
-   title: {
-    fontSize: 36,
-    lineHeight: 44,
-    fontFamily: "Fredoka_600SemiBold",
-    color: "#FF7F00",
-    textAlign: "center",
-    letterSpacing: 0,
-},
+    title: {
+        fontSize: s(36),
+        lineHeight: s(44),
+        fontFamily: "Fredoka_600SemiBold",
+        color: "#FF7F00",
+        textAlign: "center",
+        letterSpacing: 0,
+    },
+
     descriptionContainer: {
         width: "88%",
-        height: 75,
+        minHeight: s(75),
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 2,
+        // small devices: extra gap between title and description
+        marginTop: IS_SMALL_DEVICE ? s(16) : s(2),
     },
 
     description: {
-        fontSize: Math.min(width * 0.32, 16),
+        fontSize: s(16),
         fontFamily: "Nunito_700Bold",
-        lineHeight: 19,
+        lineHeight: s(19),
         fontWeight: "500",
         color: "#292929",
         textAlign: "center",
@@ -369,7 +405,7 @@ const styles = StyleSheet.create({
         height: height * 0.55,
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 5,
+        marginTop: s(5),
     },
 
     slideImage: {
@@ -382,11 +418,11 @@ const styles = StyleSheet.create({
 
         top: "-35%",
 
-        width: 40,
-        height: 40,
+        width: s(40),
+        height: s(40),
 
-        marginTop: -11.5,
-        marginLeft: 20,
+        marginTop: s(-11.5),
+        marginLeft: s(20),
 
         zIndex: 10,
     },
@@ -404,7 +440,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-start",
 
-        paddingTop: 8,
+        paddingTop: s(8),
     },
 
     buttonWrapper: {
@@ -413,10 +449,10 @@ const styles = StyleSheet.create({
 
     getStartedButton: {
         width: "100%",
-        minHeight: 50,
+        minHeight: s(50),
 
         backgroundColor: "#FF7A00",
-        borderRadius: 10,
+        borderRadius: s(10),
 
         alignItems: "center",
         justifyContent: "center",
@@ -424,33 +460,33 @@ const styles = StyleSheet.create({
         shadowColor: "#FF7A00",
         shadowOffset: {
             width: 0,
-            height: 14,
+            height: s(14),
         },
         shadowOpacity: 0.20,
-        shadowRadius: 15,
+        shadowRadius: s(15),
 
         elevation: 5,
     },
 
     getStartedButtonPressed: {
-        transform: [{ translateY: 2 }],
+        transform: [{ translateY: s(2) }],
     },
 
     getStartedText: {
         color: "#FFFFFF",
-        fontSize: 16,
+        fontSize: s(16),
         fontWeight: "800",
     },
     skipButton: {
-        marginTop: 8,
-        marginBottom: 20,
-        paddingVertical: 3,
-        paddingHorizontal: 20,
+        marginTop: s(8),
+        marginBottom: s(20),
+        paddingVertical: s(3),
+        paddingHorizontal: s(20),
     },
 
     skipText: {
         color: "#222222",
-        fontSize: 13,
+        fontSize: s(13),
         fontWeight: "500",
     },
 
@@ -458,21 +494,21 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 8,
-        gap: 5,
+        marginTop: s(8),
+        gap: s(5),
     },
 
     dot: {
-        width: 5,
-        height: 5,
-        borderRadius: 3,
+        width: s(5),
+        height: s(5),
+        borderRadius: s(3),
         backgroundColor: "#FFDCC2",
     },
 
     activeDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: s(6),
+        height: s(6),
+        borderRadius: s(3),
         backgroundColor: "#FF6B00",
     },
     onboardingPaw: {
@@ -494,7 +530,7 @@ const styles = StyleSheet.create({
     pawTopLeft: {
         top:
             DESIGN_TOP +
-            40 * DESIGN_SCALE,
+            30 * DESIGN_SCALE,
 
         left:
             DESIGN_LEFT +
