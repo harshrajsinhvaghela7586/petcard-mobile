@@ -10,13 +10,14 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
     Nunito_600SemiBold,
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
-import { router } from "expo-router";
+import BottomNav, { useNavHeight } from "../components/BottomNav";
 
 const { width, height } = Dimensions.get("window");
 
@@ -66,10 +67,10 @@ const WEEK = [
 ];
 
 const STATS = [
-    { key: "food", label: "Food", value: "150", total: "300 g", progress: 0.5, icon: "bowl-mix" },
-    { key: "water", label: "Water", value: "400", total: "500 ml", progress: 0.8, icon: "water" },
-    { key: "activity", label: "Activity", value: "30", total: "60 min", progress: 0.5, icon: "shoe-sneaker" },
-    { key: "care", label: "Care Score", value: "85", total: "100", progress: 0.85, icon: "heart" },
+    { key: "food", label: "Food", value: "150", total: "300 g", progress: 0.5, icon: "bowl-mix", route: "/FoodScreen" },
+    { key: "water", label: "Water", value: "400", total: "500 ml", progress: 0.8, icon: "water", route: "/WaterScreen" },
+    { key: "activity", label: "Activity", value: "30", total: "60 min", progress: 0.5, icon: "shoe-sneaker", route: "/ActivityScreen" },
+    { key: "care", label: "Care Score", value: "85", total: "100", progress: 0.85, icon: "heart", route: "/CareScoreScreen" },
 ] as const;
 
 const TASKS = [
@@ -100,13 +101,18 @@ const UPCOMING = [
     },
 ] as const;
 
-const QUICK = [
+const QUICK: readonly {
+    key: string;
+    label: string;
+    icon: string;
+    route?: string;
+}[] = [
     { key: "add", label: "Add Task", icon: "plus" },
     { key: "qr", label: "Scan QR", icon: "qrcode-scan" },
-    { key: "clicker", label: "Clicker", icon: "gesture-tap-button" },
-    { key: "whistle", label: "Whistle", icon: "bullhorn-outline" },
+    { key: "clicker", label: "Clicker", icon: "gesture-tap-button", route: "/ClickerScreen" },
+    { key: "whistle", label: "Whistle", icon: "bullhorn-outline", route: "/WhistleScreen" },
     { key: "chat", label: "AI Chat", icon: "robot-happy-outline" },
-] as const;
+];
 
 /* ------------------------------------------------------------------
  * SMALL REUSABLE PIECES
@@ -153,6 +159,7 @@ function SectionHeader({
  * ------------------------------------------------------------------ */
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
+    const NAV_HEIGHT = useNavHeight();
 
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
@@ -160,7 +167,6 @@ export default function HomeScreen() {
         Nunito_700Bold,
     });
 
-    const [tab, setTab] = useState<"home" | "tasks" | "know" | "profile">("home");
     const [tasks, setTasks] = useState(
         TASKS.reduce<Record<string, boolean>>((acc, t) => {
             acc[t.key] = t.done;
@@ -171,8 +177,6 @@ export default function HomeScreen() {
     if (!fontsLoaded) {
         return null;
     }
-
-    const NAV_HEIGHT = s(64) + insets.bottom;
 
     const toggleTask = (key: string) =>
         setTasks((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -334,11 +338,15 @@ export default function HomeScreen() {
                 </View>
 
                 {/* ==============================
-                    STATS
+                    STATS  (each one opens its screen)
                 ============================== */}
                 <View style={[styles.card, styles.statsCard]}>
                     {STATS.map((st) => (
-                        <View key={st.key} style={styles.statItem}>
+                        <Pressable
+                            key={st.key}
+                            style={styles.statItem}
+                            onPress={() => router.push(st.route as any)}
+                        >
                             <Text style={styles.statLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
                                 {st.label}
                             </Text>
@@ -356,7 +364,7 @@ export default function HomeScreen() {
                             </View>
 
                             <ProgressBar progress={st.progress} />
-                        </View>
+                        </Pressable>
                     ))}
                 </View>
 
@@ -404,11 +412,16 @@ export default function HomeScreen() {
                     UPCOMING
                 ============================== */}
                 <View style={[styles.card, styles.sectionCard]}>
-                    <SectionHeader title="Upcoming" action="View Calendar" />
+                    <SectionHeader
+                        title="Upcoming"
+                        action="View Calendar"
+                        onPress={() => router.push("/CalendarScreen" as any)}
+                    />
 
                     {UPCOMING.map((u, index) => (
                         <Pressable
                             key={u.key}
+                            onPress={() => router.push("/CalendarScreen" as any)}
                             style={[
                                 styles.upcomingRow,
                                 index > 0 && styles.upcomingRowBorder,
@@ -457,7 +470,11 @@ export default function HomeScreen() {
                 ============================== */}
                 <View style={[styles.card, styles.quickCard]}>
                     {QUICK.map((q) => (
-                        <Pressable key={q.key} style={styles.quickItem}>
+                        <Pressable
+                            key={q.key}
+                            style={styles.quickItem}
+                            onPress={() => q.route && router.push(q.route as any)}
+                        >
                             <View style={styles.quickIcon}>
                                 <MaterialCommunityIcons
                                     name={q.icon as any}
@@ -474,75 +491,10 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* ==============================
-                BOTTOM NAV
+                BOTTOM NAV (shared component)
             ============================== */}
-            <View
-                style={[
-                    styles.nav,
-                    { height: NAV_HEIGHT, paddingBottom: insets.bottom },
-                ]}
-            >
-                <NavItem
-                    label="Home"
-                    icon="home"
-                    active={tab === "home"}
-                    onPress={() => setTab("home")}
-                />
-                <NavItem
-                    label="Tasks"
-                    icon="checkbox-outline"
-                    active={tab === "tasks"}
-                    onPress={() => setTab("tasks")}
-                />
-
-                <View style={styles.navCenterSlot}>
-                    <Pressable style={styles.navCenter}>
-                        <Image
-                            source={require("../../assets/images/paw-white.png")}
-                            resizeMode="contain"
-                            style={styles.navCenterPaw}
-                        />
-                    </Pressable>
-                </View>
-
-                <NavItem
-                    label="Know"
-                    icon="book-outline"
-                    active={tab === "know"}
-                    onPress={() => setTab("know")}
-                />
-                <NavItem
-                    label="Profile"
-                    icon="person-outline"
-                    active={tab === "profile"}
-                    onPress={() => setTab("profile")}
-                />
-            </View>
+            <BottomNav active="home" />
         </View>
-    );
-}
-
-function NavItem({
-    label,
-    icon,
-    active,
-    onPress,
-}: {
-    label: string;
-    icon: React.ComponentProps<typeof Ionicons>["name"];
-    active: boolean;
-    onPress: () => void;
-}) {
-    return (
-        <Pressable onPress={onPress} style={styles.navItem}>
-            <Ionicons name={icon} size={s(24)} color={active ? C.orange : C.iconMuted} />
-            <Text
-                style={[styles.navLabel, active && styles.navLabelActive]}
-                maxFontSizeMultiplier={1.1}
-            >
-                {label}
-            </Text>
-        </Pressable>
     );
 }
 
@@ -1089,63 +1041,5 @@ const styles = StyleSheet.create({
         fontFamily: "Nunito_700Bold",
         fontSize: s(11),
         color: C.brown,
-    },
-
-    /* BOTTOM NAV */
-    nav: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: C.card,
-        borderTopWidth: 1,
-        borderTopColor: C.peachBorder,
-        borderTopLeftRadius: s(22),
-        borderTopRightRadius: s(22),
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: s(-3) },
-        shadowOpacity: 0.06,
-        shadowRadius: s(8),
-        elevation: 10,
-    },
-    navItem: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: s(2),
-    },
-    navLabel: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: s(11),
-        color: C.iconMuted,
-    },
-    navLabelActive: {
-        color: C.orange,
-    },
-    navCenterSlot: {
-        flex: 1,
-        alignItems: "center",
-    },
-    navCenter: {
-        width: s(60),
-        height: s(60),
-        borderRadius: s(30),
-        marginTop: s(-34),
-        backgroundColor: C.orange,
-        borderWidth: 4,
-        borderColor: C.white,
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: C.orange,
-        shadowOffset: { width: 0, height: s(6) },
-        shadowOpacity: 0.3,
-        shadowRadius: s(10),
-        elevation: 8,
-    },
-    navCenterPaw: {
-        width: s(30),
-        height: s(30),
     },
 });
