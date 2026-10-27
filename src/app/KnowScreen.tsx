@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -17,7 +17,8 @@ import {
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import PetHubDrawer from "@/components/PetHubDrawer";
 import BottomNav, { useNavHeight } from "../components/BottomNav";
 
 const { width, height } = Dimensions.get("window");
@@ -121,7 +122,7 @@ const CATEGORIES = [
         tint: "#EFE9FF",
         border: "#DCCFFF",
         iconColor: "#7A5CFF",
-        route: "/know/pawchat-ai",
+        route: "/AIChatScreen",
         isNew: true,
     },
 ] as const;
@@ -130,6 +131,16 @@ export default function KnowScreen() {
     const insets = useSafeAreaInsets();
     const NAV_HEIGHT = useNavHeight();
     const [query, setQuery] = useState("");
+
+    /* Pet Hub drawer (left se slide) */
+    const [hubOpen, setHubOpen] = useState(false);
+
+    /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
+    useFocusEffect(
+        useCallback(() => {
+            return () => setHubOpen(false);
+        }, [])
+    );
 
     const [fontsLoaded] = useFonts({ Fredoka_600SemiBold, Nunito_600SemiBold, Nunito_700Bold });
     if (!fontsLoaded) return null;
@@ -151,20 +162,24 @@ export default function KnowScreen() {
             >
                 {/* TOP BAR */}
                 <View style={styles.topBar}>
-                    <Pressable style={styles.iconButton}>
+                    {/* menu -> Pet Hub drawer */}
+                    <Pressable style={styles.iconButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
                     </Pressable>
 
                     <View style={{ flex: 1 }} />
 
-                    <Pressable style={styles.iconButton}>
+                    <Pressable style={styles.iconButton} onPress={() => router.push("/notifications" as any)}>
                         <Ionicons name="notifications-outline" size={s(22)} color={C.brown} />
                         <View style={styles.badge}>
                             <Text style={styles.badgeText} maxFontSizeMultiplier={1}>3</Text>
                         </View>
                     </Pressable>
 
-                    <View style={styles.xpPill}>
+                    <Pressable
+                        style={styles.xpPill}
+                        onPress={() => router.push("/LevelScreen" as any)}
+                    >
                         <View style={styles.xpCoin}>
                             <Image
                                 source={require("../../assets/images/paw-white.png")}
@@ -173,7 +188,7 @@ export default function KnowScreen() {
                             />
                         </View>
                         <Text style={styles.xpText} maxFontSizeMultiplier={1.1}>XP 1,250</Text>
-                    </View>
+                    </Pressable>
                 </View>
 
                 {/* HERO */}
@@ -294,13 +309,16 @@ export default function KnowScreen() {
                             Ask PawChat AI – your smart pet care buddy!
                         </Text>
                     </View>
-                    <Pressable style={styles.askBtn} onPress={() => open("/know/pawchat-ai")}>
+                    <Pressable style={styles.askBtn} onPress={() => open("/AIChatScreen")}>
                         <Text style={styles.askBtnText} maxFontSizeMultiplier={1.1}>Ask Now ✦</Text>
                     </Pressable>
                 </View>
             </ScrollView>
 
             <BottomNav active="know" />
+
+            {/* PET HUB DRAWER (sabse upar render hona chahiye) */}
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} />
         </View>
     );
 }

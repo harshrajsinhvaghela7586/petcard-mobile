@@ -211,7 +211,7 @@ export default function AiChatScreen() {
             </KeyboardAvoidingView>
 
             {/* BOTTOM NAV: paw button active (white + orange paw) */}
-            {!kbVisible ? <BottomNav active="ai" /> : null}
+            {!kbVisible ? <BottomNav /> : null}
         </View>
     );
 }

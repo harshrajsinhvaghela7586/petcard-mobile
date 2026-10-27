@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -16,7 +16,8 @@ import {
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import PetHubDrawer from "@/components/PetHubDrawer";
 import BottomNav, { useNavHeight } from "../components/BottomNav";
 
 const { width, height } = Dimensions.get("window");
@@ -39,12 +40,22 @@ const C = {
     green: "#5E9B2D",
 };
 
+/* Routes: file name = route name (src/app/<name>.tsx) */
+const ROUTES = {
+    editProfile: "/edit-profile",
+    rewards: "/RewardScreen",
+    achievements: "/AchievementScreen",
+    notifications: "/notifications", // src/app/notifications/index.tsx
+    settings: "/settings", // src/app/settings/index.tsx
+    help: "/help-support",
+    about: "/about",
+};
+
 const PETS = [
     { key: "milo", name: "Milo", active: true },
     { key: "bruno", name: "Bruno", active: false },
 ];
 
-/* Menu rows: abhi sirf links, pages baad me */
 const MENU = [
     {
         key: "rewards",
@@ -53,7 +64,7 @@ const MENU = [
         icon: "trophy",
         tint: "#FFF0D6",
         color: "#E08A00",
-        route: "/rewards",
+        route: ROUTES.rewards,
         right: "xp",
     },
     {
@@ -63,7 +74,7 @@ const MENU = [
         icon: "medal",
         tint: "#EAF3DC",
         color: "#5E9B2D",
-        route: "/achievements",
+        route: ROUTES.achievements,
         right: "badges",
     },
     {
@@ -73,7 +84,7 @@ const MENU = [
         icon: "bell",
         tint: "#E6F0FA",
         color: "#3B6FB6",
-        route: "/notifications",
+        route: ROUTES.notifications,
         right: "count",
     },
     {
@@ -83,7 +94,7 @@ const MENU = [
         icon: "cog",
         tint: "#F3EAFF",
         color: "#7A5CFF",
-        route: "/settings",
+        route: ROUTES.settings,
         right: "none",
     },
     {
@@ -93,7 +104,7 @@ const MENU = [
         icon: "help-circle",
         tint: "#E3F4F1",
         color: "#2E9C8A",
-        route: "/help-support",
+        route: ROUTES.help,
         right: "none",
     },
     {
@@ -103,7 +114,7 @@ const MENU = [
         icon: "paw",
         tint: "#FFE9D6",
         color: "#FF7A00",
-        route: "/about",
+        route: ROUTES.about,
         right: "none",
     },
 ] as const;
@@ -113,6 +124,16 @@ const BADGE_COLORS = ["#7A5CFF", "#FF7A00", "#5E9B2D"];
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
     const NAV_HEIGHT = useNavHeight();
+
+    /* Pet Hub drawer (left se slide) */
+    const [hubOpen, setHubOpen] = useState(false);
+
+    /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
+    useFocusEffect(
+        useCallback(() => {
+            return () => setHubOpen(false);
+        }, [])
+    );
 
     const [fontsLoaded] = useFonts({ Fredoka_600SemiBold, Nunito_600SemiBold, Nunito_700Bold });
     if (!fontsLoaded) return null;
@@ -138,7 +159,8 @@ export default function ProfileScreen() {
             >
                 {/* TOP BAR */}
                 <View style={styles.topBar}>
-                    <Pressable style={styles.iconButton}>
+                    {/* menu -> Pet Hub drawer */}
+                    <Pressable style={styles.iconButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
                     </Pressable>
 
@@ -151,14 +173,16 @@ export default function ProfileScreen() {
                         </Text>
                     </View>
 
-                    <Pressable style={styles.iconButton}>
+                    {/* bell -> Notifications */}
+                    <Pressable style={styles.iconButton} onPress={() => open(ROUTES.notifications)}>
                         <Ionicons name="notifications-outline" size={s(22)} color={C.brown} />
                         <View style={styles.badge}>
                             <Text style={styles.badgeText} maxFontSizeMultiplier={1}>3</Text>
                         </View>
                     </Pressable>
 
-                    <View style={styles.xpPill}>
+                    {/* XP pill -> Rewards */}
+                    <Pressable style={styles.xpPill} onPress={() => open(ROUTES.rewards)}>
                         <View style={styles.xpCoin}>
                             <Image
                                 source={require("../../assets/images/paw-white.png")}
@@ -167,7 +191,7 @@ export default function ProfileScreen() {
                             />
                         </View>
                         <Text style={styles.xpText} maxFontSizeMultiplier={1.1}>XP 1,250</Text>
-                    </View>
+                    </Pressable>
                 </View>
 
                 {/* PROFILE CARD */}
@@ -181,9 +205,9 @@ export default function ProfileScreen() {
                                     style={styles.avatar}
                                 />
                             </View>
-                            <View style={styles.cameraBadge}>
+                            <Pressable style={styles.cameraBadge} onPress={() => open(ROUTES.editProfile)}>
                                 <Ionicons name="camera" size={s(11)} color={C.white} />
-                            </View>
+                            </Pressable>
                         </View>
 
                         <View style={styles.profileInfo}>
@@ -191,7 +215,7 @@ export default function ProfileScreen() {
                                 <Text style={styles.name} maxFontSizeMultiplier={1.1} numberOfLines={1}>
                                     ABC
                                 </Text>
-                                <Pressable style={styles.editBtn} onPress={() => open("/edit-profile")}>
+                                <Pressable style={styles.editBtn} onPress={() => open(ROUTES.editProfile)}>
                                     <Ionicons name="pencil" size={s(12)} color={C.orange} />
                                     <Text style={styles.editText} maxFontSizeMultiplier={1.1}>Edit Profile</Text>
                                 </Pressable>
@@ -361,6 +385,9 @@ export default function ProfileScreen() {
             </ScrollView>
 
             <BottomNav active="profile" />
+
+            {/* PET HUB DRAWER (sabse upar render hona chahiye) */}
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} />
         </View>
     );
 }

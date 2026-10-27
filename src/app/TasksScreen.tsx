@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -17,7 +17,10 @@ import {
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
-import BottomNav, { useNavHeight } from "../components/BottomNav"
+import { router, useFocusEffect } from "expo-router";
+import PrimaryButton from "@/components/Button/PrimaryButton";
+import PetHubDrawer from "@/components/PetHubDrawer";
+import BottomNav, { useNavHeight } from "../components/BottomNav";
 
 const { width, height } = Dimensions.get("window");
 const SCALE = Math.min(width / 393, height / 852);
@@ -41,6 +44,15 @@ const C = {
     redBg: "#FFE5E1",
 };
 
+/* Routes: file name = route name (src/app/<name>.tsx) */
+const ROUTES = {
+    createTask: "/CreateTaskScreen",
+    taskDetails: "/TaskDetailsScreen",
+    taskHistory: "/TaskHistoryScreen",
+    taskCalendar: "/TaskCalenderScreen",
+    notifications: "/notifications",
+};
+
 const FILTERS = ["All", "Care", "Health", "Training", "Other"];
 
 const INITIAL_TASKS = [
@@ -51,10 +63,10 @@ const INITIAL_TASKS = [
 ] as const;
 
 const HISTORY = [
-    { key: "h1", title: "Breakfast", sub: "08:00 AM", status: "Completed", icon: "food-variant", ok: true },
-    { key: "h2", title: "Walk", sub: "06:00 PM", status: "Completed", icon: "dog-service", ok: true },
-    { key: "h3", title: "Medicine", sub: "08:00 PM", status: "Missed", icon: "pill", ok: false },
-    { key: "h4", title: "Brush Fur", sub: "Yesterday", status: "Completed", icon: "brush", ok: true },
+    { key: "h1", task: "breakfast", title: "Breakfast", sub: "08:00 AM", status: "Completed", icon: "food-variant", ok: true },
+    { key: "h2", task: "walk", title: "Walk", sub: "06:00 PM", status: "Completed", icon: "dog-service", ok: true },
+    { key: "h3", task: "medicine", title: "Medicine", sub: "08:00 PM", status: "Missed", icon: "pill", ok: false },
+    { key: "h4", task: "brush", title: "Brush Fur", sub: "Yesterday", status: "Completed", icon: "brush", ok: true },
 ] as const;
 
 const MILESTONES = [3, 7, 14, 30];
@@ -122,6 +134,16 @@ export default function TasksScreen() {
         }, {})
     );
 
+    /* Pet Hub drawer (left se slide) */
+    const [hubOpen, setHubOpen] = useState(false);
+
+    /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
+    useFocusEffect(
+        useCallback(() => {
+            return () => setHubOpen(false);
+        }, [])
+    );
+
     const calendarCells = useMemo(() => {
         const cells: (number | null)[] = Array(MONTH_OFFSET).fill(null);
         for (let d = 1; d <= MONTH_DAYS; d++) cells.push(d);
@@ -136,6 +158,10 @@ export default function TasksScreen() {
     const total = 6;
     const completed = 4;
     const percent = Math.round((completed / total) * 100);
+
+    const open = (route: string) => router.push(route as any);
+    const openTask = (key: string) =>
+        router.push({ pathname: ROUTES.taskDetails, params: { task: key } } as any);
 
     const toggleTask = (key: string) => setTasks((p) => ({ ...p, [key]: !p[key] }));
 
@@ -158,7 +184,8 @@ export default function TasksScreen() {
             >
                 {/* TOP BAR */}
                 <View style={styles.topBar}>
-                    <Pressable style={styles.iconButton}>
+                    {/* menu -> Pet Hub drawer */}
+                    <Pressable style={styles.iconButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
                     </Pressable>
 
@@ -171,7 +198,8 @@ export default function TasksScreen() {
                         </Text>
                     </View>
 
-                    <Pressable style={styles.iconButton}>
+                    {/* bell -> Notifications */}
+                    <Pressable style={styles.iconButton} onPress={() => open(ROUTES.notifications)}>
                         <Ionicons name="notifications-outline" size={s(22)} color={C.brown} />
                         <View style={styles.badge}>
                             <Text style={styles.badgeText} maxFontSizeMultiplier={1}>3</Text>
@@ -249,9 +277,10 @@ export default function TasksScreen() {
                     {INITIAL_TASKS.map((t) => {
                         const done = tasks[t.key];
                         return (
+                            /* row tap -> Task Details, checkbox tap -> done toggle */
                             <Pressable
                                 key={t.key}
-                                onPress={() => toggleTask(t.key)}
+                                onPress={() => openTask(t.key)}
                                 style={[styles.card, styles.taskRow, done && styles.taskRowDone]}
                             >
                                 <View style={styles.taskIcon}>
@@ -267,13 +296,15 @@ export default function TasksScreen() {
                                     </Text>
                                 </View>
 
-                                {done ? (
-                                    <View style={styles.checkDone}>
-                                        <Ionicons name="checkmark" size={s(14)} color={C.white} />
-                                    </View>
-                                ) : (
-                                    <View style={styles.checkEmpty} />
-                                )}
+                                <Pressable onPress={() => toggleTask(t.key)} hitSlop={10}>
+                                    {done ? (
+                                        <View style={styles.checkDone}>
+                                            <Ionicons name="checkmark" size={s(14)} color={C.white} />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.checkEmpty} />
+                                    )}
+                                </Pressable>
 
                                 <Image
                                     source={require("../../assets/images/pets/huchiko.png")}
@@ -285,21 +316,31 @@ export default function TasksScreen() {
                     })}
 
                     {/* CREATE NEW TASK */}
-                    <Pressable style={styles.createBtn}>
-                        <Ionicons name="add" size={s(20)} color={C.white} />
-                        <Text style={styles.createText} maxFontSizeMultiplier={1.1}>Create New Task</Text>
-                    </Pressable>
+                    <View style={styles.buttonWrapper}>
+                        <PrimaryButton
+                            title="Create New Task"
+                            onPress={() => open(ROUTES.createTask)}
+                            icon={
+                                <Image
+                                    source={require("../../assets/images/paw-white.png")}
+                                    resizeMode="contain"
+                                    style={styles.buttonPaw}
+                                />
+                            }
+                        />
+                    </View>
                 </View>
 
                 {/* CALENDAR + STREAK */}
                 <View style={styles.rowTwo}>
                     {/* calendar */}
                     <View style={[styles.card, styles.calendarCard]}>
-                        <View style={styles.calHeader}>
+                        {/* header tap -> full Calendar screen */}
+                        <Pressable style={styles.calHeader} onPress={() => open(ROUTES.taskCalendar)} hitSlop={6}>
                             <Ionicons name="chevron-back" size={s(14)} color={C.brown} />
                             <Text style={styles.calMonth} maxFontSizeMultiplier={1.1}>{MONTH_LABEL}</Text>
                             <Ionicons name="chevron-forward" size={s(14)} color={C.brown} />
-                        </View>
+                        </Pressable>
 
                         <View style={styles.calRow}>
                             {WEEKDAYS.map((d, i) => (
@@ -386,7 +427,7 @@ export default function TasksScreen() {
                 <View style={styles.listWrap}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.1}>Task History</Text>
-                        <Pressable style={styles.sectionAction}>
+                        <Pressable style={styles.sectionAction} onPress={() => open(ROUTES.taskHistory)}>
                             <Text style={styles.sectionActionText} maxFontSizeMultiplier={1.1}>View All</Text>
                             <Ionicons name="chevron-forward" size={s(13)} color={C.orange} />
                         </Pressable>
@@ -398,8 +439,9 @@ export default function TasksScreen() {
                         contentContainerStyle={{ gap: s(8) }}
                     >
                         {HISTORY.map((h) => (
-                            <View
+                            <Pressable
                                 key={h.key}
+                                onPress={() => open(ROUTES.taskHistory)}
                                 style={[
                                     styles.historyCard,
                                     { backgroundColor: h.ok ? C.greenBg : C.redBg },
@@ -424,13 +466,16 @@ export default function TasksScreen() {
                                         {h.status}
                                     </Text>
                                 </View>
-                            </View>
+                            </Pressable>
                         ))}
                     </ScrollView>
                 </View>
             </ScrollView>
 
             <BottomNav active="tasks" />
+
+            {/* PET HUB DRAWER (sabse upar render hona chahiye) */}
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} />
         </View>
     );
 }
@@ -605,22 +650,23 @@ const styles = StyleSheet.create({
     },
     taskPet: { width: s(46), height: s(46), marginLeft: s(6) },
 
-    createBtn: {
-        height: s(48),
-        borderRadius: s(14),
-        backgroundColor: C.orange,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: s(6),
-        marginTop: s(4),
-        shadowColor: C.orange,
-        shadowOffset: { width: 0, height: s(4) },
-        shadowOpacity: 0.3,
-        shadowRadius: s(8),
-        elevation: 5,
+    /* PrimaryButton wrapper + paw: same as PetTypeScreen */
+    buttonWrapper: {
+        width: "100%",
+        maxWidth: 380,
+        position: "relative",
+        alignSelf: "center",
+        marginTop: s(30),
     },
-    createText: { fontFamily: "Nunito_700Bold", fontSize: s(15), color: C.white },
+    buttonPaw: {
+        position: "absolute",
+        top: "-30%",
+        width: s(40),
+        height: s(40),
+        marginTop: s(-11.5),
+        marginLeft: s(20),
+        zIndex: 10,
+    },
 
     /* calendar + streak */
     rowTwo: {
@@ -681,8 +727,8 @@ const styles = StyleSheet.create({
         borderRadius: s(10),
         paddingVertical: s(3),
         paddingHorizontal: s(6),
-        marginTop:-19,
-        marginRight:-7,
+        marginTop: -19,
+        marginRight: -7,
     },
     streakBubbleText: {
         fontFamily: "Nunito_700Bold",

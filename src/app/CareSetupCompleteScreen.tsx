@@ -146,7 +146,7 @@ export default function CareSetupCompleteScreen() {
                     <View style={styles.buttonWrap}>
                         <PrimaryButton
                             title="Go to Dashboard"
-                            onPress={() => router.replace("/EmergencyCardScreen" as any)}
+                            onPress={() => router.replace("/HomeScreen" as any)}
                             style={styles.primaryButton}
                             icon={
                                 <Image

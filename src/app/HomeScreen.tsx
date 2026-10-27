@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
     Nunito_600SemiBold,
@@ -18,6 +18,9 @@ import {
     useFonts,
 } from "@expo-google-fonts/nunito";
 import BottomNav, { useNavHeight } from "../components/BottomNav";
+import PetHubDrawer from "@/components/PetHubDrawer";
+import StreakPopup from "@/components/StreakPopup";
+import PawPointsPopup from "@/components/PawPointsPopup";
 
 const { width, height } = Dimensions.get("window");
 
@@ -80,6 +83,10 @@ const TASKS = [
     { key: "brush", title: "Brush Fur", sub: "Every Sun", icon: "brush", done: false },
 ] as const;
 
+/* Task complete karne par milne wale PawPoints (abhi static) */
+const TASK_POINTS = 25;
+const STREAK_BONUS = 15;
+
 const UPCOMING = [
     {
         key: "vaccination",
@@ -107,11 +114,11 @@ const QUICK: readonly {
     icon: string;
     route?: string;
 }[] = [
-    { key: "add", label: "Add Task", icon: "plus" },
-    { key: "qr", label: "Scan QR", icon: "qrcode-scan" },
+    { key: "add", label: "Add Task", icon: "plus", route: "/CreateTaskScreen" },
+    { key: "qr", label: "Scan QR", icon: "qrcode-scan", route: "/ScanQRScreen" },
     { key: "clicker", label: "Clicker", icon: "gesture-tap-button", route: "/ClickerScreen" },
     { key: "whistle", label: "Whistle", icon: "bullhorn-outline", route: "/WhistleScreen" },
-    { key: "chat", label: "AI Chat", icon: "robot-happy-outline" },
+    { key: "chat", label: "AI Chat", icon: "robot-happy-outline" ,route:"/AIChatScreen"},
 ];
 
 /* ------------------------------------------------------------------
@@ -167,6 +174,9 @@ export default function HomeScreen() {
         Nunito_700Bold,
     });
 
+    /* Quick actions bar ki asli height (scroll ke neeche content na chhupe) */
+const [quickH, setQuickH] = useState(s(92));
+
     const [tasks, setTasks] = useState(
         TASKS.reduce<Record<string, boolean>>((acc, t) => {
             acc[t.key] = t.done;
@@ -174,12 +184,34 @@ export default function HomeScreen() {
         }, {})
     );
 
+    /* Pet Hub drawer (left se slide) */
+    const [hubOpen, setHubOpen] = useState(false);
+
+    /* Streak popup + "+25 PawPoints" popup */
+    const [streakOpen, setStreakOpen] = useState(false);
+    const [reward, setReward] = useState<{ title: string; icon: string } | null>(null);
+
+    /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
+    useFocusEffect(
+        useCallback(() => {
+            return () => setHubOpen(false);
+        }, [])
+    );
+
     if (!fontsLoaded) {
         return null;
     }
 
-    const toggleTask = (key: string) =>
+    const toggleTask = (key: string) => {
+        const task = TASKS.find((t) => t.key === key);
+
+        /* sirf "pending -> done" par popup (undo par nahi) */
+        if (task && !tasks[key]) {
+            setReward({ title: task.title, icon: task.icon });
+        }
+
         setTasks((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
 
     return (
         <View style={styles.container}>
@@ -199,29 +231,30 @@ export default function HomeScreen() {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    paddingTop: insets.top + s(8),
-                    paddingBottom: NAV_HEIGHT + s(24),
-                }}
+               contentContainerStyle={{
+    paddingTop: insets.top + s(8),
+    paddingBottom: NAV_HEIGHT + quickH + s(24),
+}}
             >
                 {/* ==============================
                     TOP BAR
                 ============================== */}
                 <View style={styles.topBar}>
-                    <Pressable style={styles.menuButton}>
+                    {/* menu -> Pet Hub drawer */}
+                    <Pressable style={styles.menuButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
                     </Pressable>
 
                     <View style={styles.greetingBox}>
-                        <Text style={styles.greeting} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                        <Text style={styles.greeting} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                             Good morning, Amber! 👋
                         </Text>
-                        <Text style={styles.heading} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                        <Text style={styles.heading} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                             How's Milo today?
                         </Text>
                     </View>
 
-                    <Pressable style={styles.bellButton}>
+                    <Pressable style={styles.bellButton} onPress={()=>router.push("/notifications")}>
                         <Ionicons name="notifications-outline" size={s(22)} color={C.brown} />
                         <View style={styles.badge}>
                             <Text style={styles.badgeText} maxFontSizeMultiplier={1}>
@@ -230,25 +263,28 @@ export default function HomeScreen() {
                         </View>
                     </Pressable>
 
-                    <View style={styles.xpPill}>
-                        <View style={styles.xpCoin}>
-                            <Image
-                                source={require("../../assets/images/paw-white.png")}
-                                resizeMode="contain"
-                                style={styles.xpCoinPaw}
-                            />
-                        </View>
-                        <Text style={styles.xpText} maxFontSizeMultiplier={1.1}>
-                            XP 1,250
-                        </Text>
-                    </View>
+                   <Pressable
+    style={styles.xpPill}
+    onPress={() => router.push("/LevelScreen" as any)}
+>
+    <View style={styles.xpCoin}>
+        <Image
+            source={require("../../assets/images/paw-white.png")}
+            resizeMode="contain"
+            style={styles.xpCoinPaw}
+        />
+    </View>
+    <Text style={styles.xpText} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+        XP 1,250
+    </Text>
+</Pressable>
                 </View>
 
                 {/* ==============================
                     STREAK + LEVEL
                 ============================== */}
                 <View style={styles.rowTwo}>
-                    <View style={[styles.card, styles.streakCard]}>
+                    <Pressable style={[styles.card, styles.streakCard]} onPress={() => setStreakOpen(true)}>
                         <View style={styles.streakTop}>
                             <MaterialCommunityIcons name="fire" size={s(32)} color={C.orange} />
                             <Text style={styles.streakNumber} maxFontSizeMultiplier={1.1}>
@@ -275,9 +311,12 @@ export default function HomeScreen() {
                                 </View>
                             ))}
                         </View>
-                    </View>
+                    </Pressable>
 
-                    <View style={[styles.card, styles.levelCard]}>
+                    <Pressable
+                        style={[styles.card, styles.levelCard]}
+                        onPress={() => router.push("/LevelScreen" as any)}
+                    >
                         <View style={styles.levelBadge}>
                             <MaterialCommunityIcons name="shield-star" size={s(26)} color={C.orange} />
                         </View>
@@ -287,13 +326,13 @@ export default function HomeScreen() {
                                 <Text style={styles.levelTitle} maxFontSizeMultiplier={1.1}>
                                     Level 4
                                 </Text>
-                                <Text style={styles.levelXp} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                <Text style={styles.levelXp} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                     1,250 / 2,000 XP
                                 </Text>
                             </View>
                             <ProgressBar progress={1250 / 2000} />
                         </View>
-                    </View>
+                    </Pressable>
                 </View>
 
                 {/* ==============================
@@ -329,7 +368,7 @@ export default function HomeScreen() {
                     </View>
 
                     {/* ASK AI */}
-                    <Pressable style={styles.askAi}>
+                    <Pressable style={styles.askAi} onPress={()=> router.push("/AIChatScreen")}>
                         <MaterialCommunityIcons name="robot-happy" size={s(30)} color="#7A5CFF" />
                         <Text style={styles.askAiText} maxFontSizeMultiplier={1.1}>
                             Ask AI
@@ -347,7 +386,7 @@ export default function HomeScreen() {
                             style={styles.statItem}
                             onPress={() => router.push(st.route as any)}
                         >
-                            <Text style={styles.statLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                            <Text style={styles.statLabel} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                 {st.label}
                             </Text>
 
@@ -357,7 +396,7 @@ export default function HomeScreen() {
                                     size={s(24)}
                                     color={C.orange}
                                 />
-                                <Text style={styles.statValue} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                <Text style={styles.statValue} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                     {st.value}
                                     <Text style={styles.statTotal}> / {st.total}</Text>
                                 </Text>
@@ -465,35 +504,66 @@ export default function HomeScreen() {
                     ))}
                 </View>
 
-                {/* ==============================
-                    QUICK ACTIONS
-                ============================== */}
-                <View style={[styles.card, styles.quickCard]}>
-                    {QUICK.map((q) => (
-                        <Pressable
-                            key={q.key}
-                            style={styles.quickItem}
-                            onPress={() => q.route && router.push(q.route as any)}
-                        >
-                            <View style={styles.quickIcon}>
-                                <MaterialCommunityIcons
-                                    name={q.icon as any}
-                                    size={s(q.key === "add" ? 26 : 24)}
-                                    color={C.orange}
-                                />
-                            </View>
-                            <Text style={styles.quickLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                                {q.label}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </View>
+               
             </ScrollView>
 
+{/* ==============================
+    QUICK ACTIONS (fixed, BottomNav ke upar)
+============================== */}
+<View
+    style={[styles.quickBar, { bottom: NAV_HEIGHT }]}
+    onLayout={(e) => setQuickH(e.nativeEvent.layout.height)}
+>
+    <View style={[styles.card, styles.quickCard]}>
+        {QUICK.map((q) => (
+            <Pressable
+                key={q.key}
+                style={styles.quickItem}
+                onPress={() => q.route && router.push(q.route as any)}
+            >
+                <View style={styles.quickIcon}>
+                    <MaterialCommunityIcons
+                        name={q.icon as any}
+                        size={s(q.key === "add" ? 26 : 24)}
+                        color={C.orange}
+                    />
+                </View>
+                <Text style={styles.quickLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                    {q.label}
+                </Text>
+            </Pressable>
+        ))}
+    </View>
+</View>
             {/* ==============================
                 BOTTOM NAV (shared component)
             ============================== */}
             <BottomNav active="home" />
+
+            {/* ==============================
+                PET HUB DRAWER (sabse upar render hona chahiye)
+            ============================== */}
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} />
+
+            {/* ==============================
+                POPUPS
+            ============================== */}
+            <StreakPopup
+                visible={streakOpen}
+                onClose={() => setStreakOpen(false)}
+                streak={7}
+                petName="Milo"
+                week={WEEK}
+                bonus={STREAK_BONUS}
+            />
+
+            <PawPointsPopup
+                visible={reward !== null}
+                onClose={() => setReward(null)}
+                points={TASK_POINTS}
+                taskTitle={reward?.title ?? ""}
+                taskIcon={reward?.icon}
+            />
         </View>
     );
 }
@@ -550,6 +620,7 @@ const styles = StyleSheet.create({
         gap: s(8),
     },
     menuButton: {
+        flexShrink: 0,
         width: s(44),
         height: s(44),
         borderRadius: s(12),
@@ -561,6 +632,7 @@ const styles = StyleSheet.create({
     },
     greetingBox: {
         flex: 1,
+        minWidth: 0,
     },
     greeting: {
         fontFamily: "Nunito_700Bold",
@@ -575,6 +647,7 @@ const styles = StyleSheet.create({
         color: C.brown,
     },
     bellButton: {
+        flexShrink: 0,
         width: s(44),
         height: s(44),
         borderRadius: s(12),
@@ -603,6 +676,7 @@ const styles = StyleSheet.create({
         color: C.white,
     },
     xpPill: {
+        flexShrink: 0,
         height: s(40),
         paddingLeft: s(5),
         paddingRight: s(10),
@@ -711,10 +785,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     levelTop: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        marginBottom: s(6),
+        flexDirection: "column",
+        alignItems: "flex-start",
+        marginBottom: s(5),
     },
     levelTitle: {
         fontFamily: "Fredoka_600SemiBold",
@@ -723,9 +796,9 @@ const styles = StyleSheet.create({
     },
     levelXp: {
         fontFamily: "Nunito_600SemiBold",
-        fontSize: s(9),
+        fontSize: s(10),
         color: C.muted,
-        flexShrink: 1,
+        alignSelf: "stretch",
     },
 
     /* PROGRESS BAR */
@@ -849,10 +922,11 @@ const styles = StyleSheet.create({
         paddingVertical: s(12),
         paddingHorizontal: s(10),
         flexDirection: "row",
-        gap: s(10),
+        gap: s(8),
     },
     statItem: {
         flex: 1,
+        minWidth: 0,
     },
     statLabel: {
         fontFamily: "Nunito_700Bold",
@@ -1014,6 +1088,16 @@ const styles = StyleSheet.create({
         fontSize: s(11),
         marginRight: s(4),
     },
+/* QUICK ACTIONS (fixed bar) */
+quickBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingTop: s(8),
+    paddingBottom: s(6),
+    backgroundColor: C.white,
+    
+},
 
     /* QUICK ACTIONS */
     quickCard: {

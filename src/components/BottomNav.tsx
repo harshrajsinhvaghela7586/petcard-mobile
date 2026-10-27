@@ -1,7 +1,6 @@
 import React from "react";
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
@@ -43,17 +42,17 @@ const TABS: { key: TabKey; label: string; icon: IconName; iconActive: IconName }
 ];
 
 /* Beech wale paw button se AI chatbot khulta hai */
-const AI_ROUTE = "/AIChatScreen";
+const AI_ROUTE = "/MemoryScreen";
 
-export const useNavHeight = () => {
-    const insets = useSafeAreaInsets();
-    return s(64) + insets.bottom;
-};
+/*
+ * Android navigation bar ka gap ab root _layout.tsx (Shell) deta hai,
+ * isliye yahan alag se bottom inset add nahi karte (warna gap double ho jata hai).
+ */
+export const useNavHeight = () => s(64);
 
 /* active na do to koi tab highlight nahi hoga (Emergency Card jaise screens ke liye) */
 export default function BottomNav({ active }: { active?: NavActive }) {
-    const insets = useSafeAreaInsets();
-    const NAV_HEIGHT = s(64) + insets.bottom;
+    const NAV_HEIGHT = s(64);
     const aiActive = active === "ai";
 
     const go = (key: TabKey) => {
@@ -88,7 +87,7 @@ export default function BottomNav({ active }: { active?: NavActive }) {
     };
 
     return (
-        <View style={[styles.nav, { height: NAV_HEIGHT, paddingBottom: insets.bottom }]}>
+        <View style={[styles.nav, { height: NAV_HEIGHT }]}>
             {item("home")}
             {item("tasks")}
 
