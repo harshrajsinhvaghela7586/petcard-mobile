@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -10,13 +10,17 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router, useFocusEffect } from "expo-router";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
     Nunito_600SemiBold,
     Nunito_700Bold,
     useFonts,
 } from "@expo-google-fonts/nunito";
-import { router } from "expo-router";
+import BottomNav, { useNavHeight } from "../components/BottomNav";
+import PetHubDrawer from "@/components/PetHubDrawer";
+import StreakPopup from "@/components/StreakPopup";
+import PawPointsPopup from "@/components/PawPointsPopup";
 
 const { width, height } = Dimensions.get("window");
 
@@ -66,10 +70,10 @@ const WEEK = [
 ];
 
 const STATS = [
-    { key: "food", label: "Food", value: "150", total: "300 g", progress: 0.5, icon: "bowl-mix" },
-    { key: "water", label: "Water", value: "400", total: "500 ml", progress: 0.8, icon: "water" },
-    { key: "activity", label: "Activity", value: "30", total: "60 min", progress: 0.5, icon: "shoe-sneaker" },
-    { key: "care", label: "Care Score", value: "85", total: "100", progress: 0.85, icon: "heart" },
+    { key: "food", label: "Food", value: "150", total: "300 g", progress: 0.5, icon: "bowl-mix", route: "/FoodScreen" },
+    { key: "water", label: "Water", value: "400", total: "500 ml", progress: 0.8, icon: "water", route: "/WaterScreen" },
+    { key: "activity", label: "Activity", value: "30", total: "60 min", progress: 0.5, icon: "shoe-sneaker", route: "/ActivityScreen" },
+    { key: "care", label: "Care Score", value: "85", total: "100", progress: 0.85, icon: "heart", route: "/CareScoreScreen" },
 ] as const;
 
 const TASKS = [
@@ -78,6 +82,10 @@ const TASKS = [
     { key: "medicine", title: "Medicine", sub: "08:00 PM", icon: "pill", done: false },
     { key: "brush", title: "Brush Fur", sub: "Every Sun", icon: "brush", done: false },
 ] as const;
+
+/* Task complete karne par milne wale PawPoints (abhi static) */
+const TASK_POINTS = 25;
+const STREAK_BONUS = 15;
 
 const UPCOMING = [
     {
@@ -100,13 +108,18 @@ const UPCOMING = [
     },
 ] as const;
 
-const QUICK = [
-    { key: "add", label: "Add Task", icon: "plus" },
-    { key: "qr", label: "Scan QR", icon: "qrcode-scan" },
-    { key: "clicker", label: "Clicker", icon: "gesture-tap-button" },
-    { key: "whistle", label: "Whistle", icon: "bullhorn-outline" },
-    { key: "chat", label: "AI Chat", icon: "robot-happy-outline" },
-] as const;
+const QUICK: readonly {
+    key: string;
+    label: string;
+    icon: string;
+    route?: string;
+}[] = [
+    { key: "add", label: "Add Task", icon: "plus", route: "/CreateTaskScreen" },
+    { key: "qr", label: "Scan QR", icon: "qrcode-scan", route: "/ScanQRScreen" },
+    { key: "clicker", label: "Clicker", icon: "gesture-tap-button", route: "/ClickerScreen" },
+    { key: "whistle", label: "Whistle", icon: "bullhorn-outline", route: "/WhistleScreen" },
+    { key: "chat", label: "AI Chat", icon: "robot-happy-outline" ,route:"/AIChatScreen"},
+];
 
 /* ------------------------------------------------------------------
  * SMALL REUSABLE PIECES
@@ -153,6 +166,7 @@ function SectionHeader({
  * ------------------------------------------------------------------ */
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
+    const NAV_HEIGHT = useNavHeight();
 
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
@@ -160,7 +174,9 @@ export default function HomeScreen() {
         Nunito_700Bold,
     });
 
-    const [tab, setTab] = useState<"home" | "tasks" | "know" | "profile">("home");
+    /* Quick actions bar ki asli height (scroll ke neeche content na chhupe) */
+const [quickH, setQuickH] = useState(s(92));
+
     const [tasks, setTasks] = useState(
         TASKS.reduce<Record<string, boolean>>((acc, t) => {
             acc[t.key] = t.done;
@@ -168,14 +184,34 @@ export default function HomeScreen() {
         }, {})
     );
 
+    /* Pet Hub drawer (left se slide) */
+    const [hubOpen, setHubOpen] = useState(false);
+
+    /* Streak popup + "+25 PawPoints" popup */
+    const [streakOpen, setStreakOpen] = useState(false);
+    const [reward, setReward] = useState<{ title: string; icon: string } | null>(null);
+
+    /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
+    useFocusEffect(
+        useCallback(() => {
+            return () => setHubOpen(false);
+        }, [])
+    );
+
     if (!fontsLoaded) {
         return null;
     }
 
-    const NAV_HEIGHT = s(64) + insets.bottom;
+    const toggleTask = (key: string) => {
+        const task = TASKS.find((t) => t.key === key);
 
-    const toggleTask = (key: string) =>
+        /* sirf "pending -> done" par popup (undo par nahi) */
+        if (task && !tasks[key]) {
+            setReward({ title: task.title, icon: task.icon });
+        }
+
         setTasks((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
 
     return (
         <View style={styles.container}>
@@ -195,29 +231,30 @@ export default function HomeScreen() {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    paddingTop: insets.top + s(8),
-                    paddingBottom: NAV_HEIGHT + s(24),
-                }}
+               contentContainerStyle={{
+    paddingTop: insets.top + s(8),
+    paddingBottom: NAV_HEIGHT + quickH + s(24),
+}}
             >
                 {/* ==============================
                     TOP BAR
                 ============================== */}
                 <View style={styles.topBar}>
-                    <Pressable style={styles.menuButton}>
+                    {/* menu -> Pet Hub drawer */}
+                    <Pressable style={styles.menuButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
                     </Pressable>
 
                     <View style={styles.greetingBox}>
-                        <Text style={styles.greeting} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                        <Text style={styles.greeting} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                             Good morning, Amber! 👋
                         </Text>
-                        <Text style={styles.heading} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                        <Text style={styles.heading} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                             How's Milo today?
                         </Text>
                     </View>
 
-                    <Pressable style={styles.bellButton}>
+                    <Pressable style={styles.bellButton} onPress={()=>router.push("/notifications")}>
                         <Ionicons name="notifications-outline" size={s(22)} color={C.brown} />
                         <View style={styles.badge}>
                             <Text style={styles.badgeText} maxFontSizeMultiplier={1}>
@@ -226,25 +263,28 @@ export default function HomeScreen() {
                         </View>
                     </Pressable>
 
-                    <View style={styles.xpPill}>
-                        <View style={styles.xpCoin}>
-                            <Image
-                                source={require("../../assets/images/paw-white.png")}
-                                resizeMode="contain"
-                                style={styles.xpCoinPaw}
-                            />
-                        </View>
-                        <Text style={styles.xpText} maxFontSizeMultiplier={1.1}>
-                            XP 1,250
-                        </Text>
-                    </View>
+                   <Pressable
+    style={styles.xpPill}
+    onPress={() => router.push("/LevelScreen" as any)}
+>
+    <View style={styles.xpCoin}>
+        <Image
+            source={require("../../assets/images/paw-white.png")}
+            resizeMode="contain"
+            style={styles.xpCoinPaw}
+        />
+    </View>
+    <Text style={styles.xpText} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+        XP 1,250
+    </Text>
+</Pressable>
                 </View>
 
                 {/* ==============================
                     STREAK + LEVEL
                 ============================== */}
                 <View style={styles.rowTwo}>
-                    <View style={[styles.card, styles.streakCard]}>
+                    <Pressable style={[styles.card, styles.streakCard]} onPress={() => setStreakOpen(true)}>
                         <View style={styles.streakTop}>
                             <MaterialCommunityIcons name="fire" size={s(32)} color={C.orange} />
                             <Text style={styles.streakNumber} maxFontSizeMultiplier={1.1}>
@@ -271,9 +311,12 @@ export default function HomeScreen() {
                                 </View>
                             ))}
                         </View>
-                    </View>
+                    </Pressable>
 
-                    <View style={[styles.card, styles.levelCard]}>
+                    <Pressable
+                        style={[styles.card, styles.levelCard]}
+                        onPress={() => router.push("/LevelScreen" as any)}
+                    >
                         <View style={styles.levelBadge}>
                             <MaterialCommunityIcons name="shield-star" size={s(26)} color={C.orange} />
                         </View>
@@ -283,13 +326,13 @@ export default function HomeScreen() {
                                 <Text style={styles.levelTitle} maxFontSizeMultiplier={1.1}>
                                     Level 4
                                 </Text>
-                                <Text style={styles.levelXp} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                <Text style={styles.levelXp} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                     1,250 / 2,000 XP
                                 </Text>
                             </View>
                             <ProgressBar progress={1250 / 2000} />
                         </View>
-                    </View>
+                    </Pressable>
                 </View>
 
                 {/* ==============================
@@ -325,7 +368,7 @@ export default function HomeScreen() {
                     </View>
 
                     {/* ASK AI */}
-                    <Pressable style={styles.askAi}>
+                    <Pressable style={styles.askAi} onPress={()=> router.push("/AIChatScreen")}>
                         <MaterialCommunityIcons name="robot-happy" size={s(30)} color="#7A5CFF" />
                         <Text style={styles.askAiText} maxFontSizeMultiplier={1.1}>
                             Ask AI
@@ -334,12 +377,16 @@ export default function HomeScreen() {
                 </View>
 
                 {/* ==============================
-                    STATS
+                    STATS  (each one opens its screen)
                 ============================== */}
                 <View style={[styles.card, styles.statsCard]}>
                     {STATS.map((st) => (
-                        <View key={st.key} style={styles.statItem}>
-                            <Text style={styles.statLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                        <Pressable
+                            key={st.key}
+                            style={styles.statItem}
+                            onPress={() => router.push(st.route as any)}
+                        >
+                            <Text style={styles.statLabel} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                 {st.label}
                             </Text>
 
@@ -349,14 +396,14 @@ export default function HomeScreen() {
                                     size={s(24)}
                                     color={C.orange}
                                 />
-                                <Text style={styles.statValue} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                <Text style={styles.statValue} maxFontSizeMultiplier={1.1} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                                     {st.value}
                                     <Text style={styles.statTotal}> / {st.total}</Text>
                                 </Text>
                             </View>
 
                             <ProgressBar progress={st.progress} />
-                        </View>
+                        </Pressable>
                     ))}
                 </View>
 
@@ -404,11 +451,16 @@ export default function HomeScreen() {
                     UPCOMING
                 ============================== */}
                 <View style={[styles.card, styles.sectionCard]}>
-                    <SectionHeader title="Upcoming" action="View Calendar" />
+                    <SectionHeader
+                        title="Upcoming"
+                        action="View Calendar"
+                        onPress={() => router.push("/CalendarScreen" as any)}
+                    />
 
                     {UPCOMING.map((u, index) => (
                         <Pressable
                             key={u.key}
+                            onPress={() => router.push("/CalendarScreen" as any)}
                             style={[
                                 styles.upcomingRow,
                                 index > 0 && styles.upcomingRowBorder,
@@ -452,97 +504,67 @@ export default function HomeScreen() {
                     ))}
                 </View>
 
-                {/* ==============================
-                    QUICK ACTIONS
-                ============================== */}
-                <View style={[styles.card, styles.quickCard]}>
-                    {QUICK.map((q) => (
-                        <Pressable key={q.key} style={styles.quickItem}>
-                            <View style={styles.quickIcon}>
-                                <MaterialCommunityIcons
-                                    name={q.icon as any}
-                                    size={s(q.key === "add" ? 26 : 24)}
-                                    color={C.orange}
-                                />
-                            </View>
-                            <Text style={styles.quickLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                                {q.label}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </View>
+               
             </ScrollView>
 
-            {/* ==============================
-                BOTTOM NAV
-            ============================== */}
-            <View
-                style={[
-                    styles.nav,
-                    { height: NAV_HEIGHT, paddingBottom: insets.bottom },
-                ]}
+{/* ==============================
+    QUICK ACTIONS (fixed, BottomNav ke upar)
+============================== */}
+<View
+    style={[styles.quickBar, { bottom: NAV_HEIGHT }]}
+    onLayout={(e) => setQuickH(e.nativeEvent.layout.height)}
+>
+    <View style={[styles.card, styles.quickCard]}>
+        {QUICK.map((q) => (
+            <Pressable
+                key={q.key}
+                style={styles.quickItem}
+                onPress={() => q.route && router.push(q.route as any)}
             >
-                <NavItem
-                    label="Home"
-                    icon="home"
-                    active={tab === "home"}
-                    onPress={() => setTab("home")}
-                />
-                <NavItem
-                    label="Tasks"
-                    icon="checkbox-outline"
-                    active={tab === "tasks"}
-                    onPress={() => setTab("tasks")}
-                />
-
-                <View style={styles.navCenterSlot}>
-                    <Pressable style={styles.navCenter}>
-                        <Image
-                            source={require("../../assets/images/paw-white.png")}
-                            resizeMode="contain"
-                            style={styles.navCenterPaw}
-                        />
-                    </Pressable>
+                <View style={styles.quickIcon}>
+                    <MaterialCommunityIcons
+                        name={q.icon as any}
+                        size={s(q.key === "add" ? 26 : 24)}
+                        color={C.orange}
+                    />
                 </View>
+                <Text style={styles.quickLabel} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                    {q.label}
+                </Text>
+            </Pressable>
+        ))}
+    </View>
+</View>
+            {/* ==============================
+                BOTTOM NAV (shared component)
+            ============================== */}
+            <BottomNav active="home" />
 
-                <NavItem
-                    label="Know"
-                    icon="book-outline"
-                    active={tab === "know"}
-                    onPress={() => setTab("know")}
-                />
-                <NavItem
-                    label="Profile"
-                    icon="person-outline"
-                    active={tab === "profile"}
-                    onPress={() => setTab("profile")}
-                />
-            </View>
+            {/* ==============================
+                PET HUB DRAWER (sabse upar render hona chahiye)
+            ============================== */}
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} />
+
+            {/* ==============================
+                POPUPS
+            ============================== */}
+            <StreakPopup
+                visible={streakOpen}
+                onClose={() => setStreakOpen(false)}
+                streak={7}
+                petName="Milo"
+                week={WEEK}
+                bonus={STREAK_BONUS}
+            />
+
+            <PawPointsPopup
+                visible={reward !== null}
+                onClose={() => setReward(null)}
+                points={TASK_POINTS}
+                taskTitle={reward?.title ?? ""}
+                taskIcon={reward?.icon}
+            />
         </View>
-    );
-}
-
-function NavItem({
-    label,
-    icon,
-    active,
-    onPress,
-}: {
-    label: string;
-    icon: React.ComponentProps<typeof Ionicons>["name"];
-    active: boolean;
-    onPress: () => void;
-}) {
-    return (
-        <Pressable onPress={onPress} style={styles.navItem}>
-            <Ionicons name={icon} size={s(24)} color={active ? C.orange : C.iconMuted} />
-            <Text
-                style={[styles.navLabel, active && styles.navLabelActive]}
-                maxFontSizeMultiplier={1.1}
-            >
-                {label}
-            </Text>
-        </Pressable>
     );
 }
 
@@ -598,6 +620,7 @@ const styles = StyleSheet.create({
         gap: s(8),
     },
     menuButton: {
+        flexShrink: 0,
         width: s(44),
         height: s(44),
         borderRadius: s(12),
@@ -609,6 +632,7 @@ const styles = StyleSheet.create({
     },
     greetingBox: {
         flex: 1,
+        minWidth: 0,
     },
     greeting: {
         fontFamily: "Nunito_700Bold",
@@ -623,6 +647,7 @@ const styles = StyleSheet.create({
         color: C.brown,
     },
     bellButton: {
+        flexShrink: 0,
         width: s(44),
         height: s(44),
         borderRadius: s(12),
@@ -651,6 +676,7 @@ const styles = StyleSheet.create({
         color: C.white,
     },
     xpPill: {
+        flexShrink: 0,
         height: s(40),
         paddingLeft: s(5),
         paddingRight: s(10),
@@ -759,10 +785,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     levelTop: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        marginBottom: s(6),
+        flexDirection: "column",
+        alignItems: "flex-start",
+        marginBottom: s(5),
     },
     levelTitle: {
         fontFamily: "Fredoka_600SemiBold",
@@ -771,9 +796,9 @@ const styles = StyleSheet.create({
     },
     levelXp: {
         fontFamily: "Nunito_600SemiBold",
-        fontSize: s(9),
+        fontSize: s(10),
         color: C.muted,
-        flexShrink: 1,
+        alignSelf: "stretch",
     },
 
     /* PROGRESS BAR */
@@ -897,10 +922,11 @@ const styles = StyleSheet.create({
         paddingVertical: s(12),
         paddingHorizontal: s(10),
         flexDirection: "row",
-        gap: s(10),
+        gap: s(8),
     },
     statItem: {
         flex: 1,
+        minWidth: 0,
     },
     statLabel: {
         fontFamily: "Nunito_700Bold",
@@ -1062,6 +1088,16 @@ const styles = StyleSheet.create({
         fontSize: s(11),
         marginRight: s(4),
     },
+/* QUICK ACTIONS (fixed bar) */
+quickBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingTop: s(8),
+    paddingBottom: s(6),
+    backgroundColor: C.white,
+    
+},
 
     /* QUICK ACTIONS */
     quickCard: {
@@ -1089,63 +1125,5 @@ const styles = StyleSheet.create({
         fontFamily: "Nunito_700Bold",
         fontSize: s(11),
         color: C.brown,
-    },
-
-    /* BOTTOM NAV */
-    nav: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: C.card,
-        borderTopWidth: 1,
-        borderTopColor: C.peachBorder,
-        borderTopLeftRadius: s(22),
-        borderTopRightRadius: s(22),
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: s(-3) },
-        shadowOpacity: 0.06,
-        shadowRadius: s(8),
-        elevation: 10,
-    },
-    navItem: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: s(2),
-    },
-    navLabel: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: s(11),
-        color: C.iconMuted,
-    },
-    navLabelActive: {
-        color: C.orange,
-    },
-    navCenterSlot: {
-        flex: 1,
-        alignItems: "center",
-    },
-    navCenter: {
-        width: s(60),
-        height: s(60),
-        borderRadius: s(30),
-        marginTop: s(-34),
-        backgroundColor: C.orange,
-        borderWidth: 4,
-        borderColor: C.white,
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: C.orange,
-        shadowOffset: { width: 0, height: s(6) },
-        shadowOpacity: 0.3,
-        shadowRadius: s(10),
-        elevation: 8,
-    },
-    navCenterPaw: {
-        width: s(30),
-        height: s(30),
     },
 });

@@ -86,8 +86,7 @@ export default function ReminderSetupScreen() {
         const enabledReminders = reminders.filter((r) => r.enabled);
         console.log("Enabled reminders:", enabledReminders);
 
-        // TODO: apni next screen ka route yahan daalo
-        router.push("/HomeScreen");
+        router.push("/FirstDailyTaskScreen");
     };
 
     const handleSkip = () => {

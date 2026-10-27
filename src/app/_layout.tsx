@@ -6,7 +6,11 @@ import {
     Slot,
 } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useColorScheme } from "react-native";
+import { View, useColorScheme } from "react-native";
+import {
+    SafeAreaProvider,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import CustomSplashScreen from "./SplashScreen";
 import OnboardingScreen from "./OnboardingScreen";
@@ -15,6 +19,23 @@ import OnboardingScreen from "./OnboardingScreen";
  * Native Expo splash ko automatically hide mat hone do.
  */
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+
+function Shell({ children }: { children: React.ReactNode }) {
+    const insets = useSafeAreaInsets();
+
+    return (
+        <View
+            style={{
+                flex: 1,
+                backgroundColor: "#FFFFFF",
+                paddingBottom: insets.bottom,
+            }}
+        >
+            {children}
+        </View>
+    );
+}
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
@@ -49,16 +70,18 @@ export default function RootLayout() {
 
     /*
      * STEP 1
-     * Custom PetCard Splash
+     * Custom PetCard Splash (full screen, no inset)
      */
     if (showCustomSplash) {
         return (
-            <CustomSplashScreen
-                onFinish={() => {
-                    setShowCustomSplash(false);
-                    setShowOnboarding(true);
-                }}
-            />
+            <SafeAreaProvider>
+                <CustomSplashScreen
+                    onFinish={() => {
+                        setShowCustomSplash(false);
+                        setShowOnboarding(true);
+                    }}
+                />
+            </SafeAreaProvider>
         );
     }
 
@@ -68,11 +91,15 @@ export default function RootLayout() {
      */
     if (showOnboarding) {
         return (
-            <OnboardingScreen
-                onFinish={() => {
-                    setShowOnboarding(false);
-                }}
-            />
+            <SafeAreaProvider>
+                <Shell>
+                    <OnboardingScreen
+                        onFinish={() => {
+                            setShowOnboarding(false);
+                        }}
+                    />
+                </Shell>
+            </SafeAreaProvider>
         );
     }
 
@@ -81,14 +108,18 @@ export default function RootLayout() {
      * Actual App / Home
      */
     return (
-        <ThemeProvider
-            value={
-                colorScheme === "dark"
-                    ? DarkTheme
-                    : DefaultTheme
-            }
-        >
-            <Slot />
-        </ThemeProvider>
+        <SafeAreaProvider>
+            <ThemeProvider
+                value={
+                    colorScheme === "dark"
+                        ? DarkTheme
+                        : DefaultTheme
+                }
+            >
+                <Shell>
+                    <Slot />
+                </Shell>
+            </ThemeProvider>
+        </SafeAreaProvider>
     );
 }
