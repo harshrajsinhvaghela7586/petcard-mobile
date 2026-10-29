@@ -24,14 +24,14 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
         title: "Account",
         rows: [
             { key: "edit", title: "Edit Profile", icon: "account-outline", route: "/edit-profile" },
-            { key: "password", title: "Change Password", icon: "lock-outline" },
-            { key: "privacy", title: "Privacy & Security", icon: "shield-check-outline",route:"/PrivacySecurityScreen" },
+            { key: "password", title: "Change Password", icon: "lock-outline",route:"/change-password" },
+            { key: "privacy", title: "Privacy & Security", icon: "shield-check-outline",route:"settings/PrivacySecurityScreen" },
         ],
     },
     {
         title: "Preferences",
         rows: [
-            { key: "reminders", title: "Reminders & Alerts", icon: "bell-outline",route:"/RemindersAlertsScreen" },
+            { key: "reminders", title: "Reminders & Alerts", icon: "bell-outline",route:"settings/RemindersAlertsScreen" },
             { key: "language", title: "App Language", icon: "web", value: "English" },
             { key: "theme", title: "Theme", icon: "palette-outline", value: "Light" },
             { key: "notif", title: "Notification Settings", icon: "bell-ring-outline", route: "/notifications" },
@@ -40,7 +40,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
     {
         title: "Support",
         rows: [
-            { key: "help", title: "Help Center", icon: "help-circle-outline", route: "/HelpSupportScreen" },
+            { key: "help", title: "Help Center", icon: "help-circle-outline", route: "settings/HelpSupportScreen" },
             { key: "contact", title: "Contact Us", icon: "email-outline",route:"/ContactusScreen" },
             { key: "about", title: "About PetCard", icon: "information-outline", value: "Version 1.0.0", route: "/AboutScreen" },
         ],
