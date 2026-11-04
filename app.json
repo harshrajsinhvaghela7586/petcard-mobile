@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "petcard-mobile",
+    "slug": "petcard-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "petcardmobile",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/images/icon.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.harshrajsinh7419.petcardmobile"
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 120
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PetCard to use your camera to scan pet QR codes."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF7A00",
+          "sounds": [
+            "./assets/sounds/tone_chime.wav",
+            "./assets/sounds/tone_bell.wav",
+            "./assets/sounds/tone_pop.wav",
+            "./assets/sounds/tone_marimba.wav",
+            "./assets/sounds/tone_alert.wav"
+          ]
+        }
+      ],
+      "expo-sharing",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8846b3bf-1d12-4fb6-aca6-c71af93464bd"
+      }
+    }
+  }
+}
