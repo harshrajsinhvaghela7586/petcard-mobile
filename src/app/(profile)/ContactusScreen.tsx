@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
     Alert,
     Image,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -10,7 +11,6 @@ import {
 } from "react-native";
 import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
 import ScreenHeader, {
-    C,
     PawBackground,
     SIDE,
     s,
@@ -27,13 +27,30 @@ const ERROR = "#D64545";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Errors = { name?: string; email?: string; message?: string };
+/* Same limits as the server (contactController.js), so nothing is rejected after pressing Send. */
+const LIMITS = {
+    nameMin: 2, nameMax: 100,
+    emailMax: 254,
+    subjectMax: 150,
+    messageMin: 5, messageMax: 5000,
+};
+
+type Errors = { name?: string; email?: string; subject?: string; message?: string };
 
 function Label({ text, required }: { text: string; required?: boolean }) {
     return (
         <Text style={styles.label} maxFontSizeMultiplier={1.1}>
             {text}
             {required ? <Text style={{ color: ORANGE }}> *</Text> : null}
+        </Text>
+    );
+}
+
+function FieldError({ text }: { text?: string }) {
+    if (!text) return null;
+    return (
+        <Text style={styles.error} maxFontSizeMultiplier={1.1} accessibilityRole="alert">
+            {text}
         </Text>
     );
 }
@@ -50,28 +67,42 @@ export default function ContactUsScreen() {
 
     if (!fontsLoaded) return null;
 
+    const clearError = (key: keyof Errors) => {
+        if (errors[key]) setErrors((p) => ({ ...p, [key]: undefined }));
+    };
+
     const validate = () => {
         const e: Errors = {};
-        if (!name.trim()) e.name = "Please enter your name.";
+        const n = name.trim();
+        const m = message.trim();
+        if (!n) e.name = "Please enter your name.";
+        else if (n.length < LIMITS.nameMin) e.name = "Name must be at least 2 characters.";
         if (!email.trim()) e.email = "Please enter your email.";
         else if (!EMAIL_RE.test(email.trim())) e.email = "Please enter a valid email.";
-        if (!message.trim()) e.message = "Please write your message.";
+        if (!m) e.message = "Please write your message.";
+        else if (m.length < LIMITS.messageMin) e.message = "Message must be at least 5 characters.";
         setErrors(e);
         return Object.keys(e).length === 0;
     };
 
     const handleSend = async () => {
         if (sending || !validate()) return;
+        Keyboard.dismiss();
         setSending(true);
         try {
             const result = await petcardApi.sendContactMessage({
-                name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim(),
+                name: name.trim(),
+                email: email.trim().toLowerCase(),
+                subject: subject.trim(),
+                message: message.trim(),
             });
             Alert.alert("Message sent", result.message || "Thanks for reaching out! Our team will get back to you soon.");
             setName(""); setEmail(""); setSubject(""); setMessage(""); setErrors({});
         } catch (error) {
             Alert.alert("Message not sent", error instanceof Error ? error.message : "Please check your connection and try again.");
-        } finally { setSending(false); }
+        } finally {
+            setSending(false);
+        }
     };
 
     return (
@@ -79,13 +110,16 @@ export default function ContactUsScreen() {
             <PawBackground />
             <ScreenHeader title="Contact Us" />
 
+            {/* The button lives inside this view, so it moves up with the keyboard instead of being hidden by it. */}
             <KeyboardAvoidingView
-                style={{ flex: 1 }}
+                style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 <ScrollView
+                    style={styles.flex}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
                     contentContainerStyle={styles.content}
                 >
                     <Text style={styles.title} maxFontSizeMultiplier={1.1}>
@@ -95,87 +129,102 @@ export default function ContactUsScreen() {
                     <Label text="Name" required />
                     <TextInput
                         value={name}
-                        onChangeText={(t) => {
-                            setName(t);
-                            if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
-                        }}
+                        onChangeText={(t) => { setName(t); clearError("name"); }}
                         placeholder="Your name"
                         placeholderTextColor={PLACEHOLDER}
                         autoCapitalize="words"
+                        autoComplete="name"
+                        textContentType="name"
+                        returnKeyType="next"
+                        maxLength={LIMITS.nameMax}
                         style={[styles.input, errors.name && styles.inputError]}
                         maxFontSizeMultiplier={1.1}
+                        accessibilityLabel="Name"
                     />
-                    {errors.name ? <Text style={styles.error}>{errors.name}</Text> : null}
+                    <FieldError text={errors.name} />
 
                     <Label text="Email" required />
                     <TextInput
                         value={email}
-                        onChangeText={(t) => {
-                            setEmail(t);
-                            if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
-                        }}
+                        onChangeText={(t) => { setEmail(t); clearError("email"); }}
                         placeholder="you@example.com"
                         placeholderTextColor={PLACEHOLDER}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        autoComplete="email"
+                        textContentType="emailAddress"
+                        returnKeyType="next"
+                        maxLength={LIMITS.emailMax}
                         style={[styles.input, errors.email && styles.inputError]}
                         maxFontSizeMultiplier={1.1}
+                        accessibilityLabel="Email"
                     />
-                    {errors.email ? <Text style={styles.error}>{errors.email}</Text> : null}
+                    <FieldError text={errors.email} />
 
                     <Label text="Subject" />
                     <TextInput
                         value={subject}
-                        onChangeText={setSubject}
+                        onChangeText={(t) => { setSubject(t); clearError("subject"); }}
                         placeholder="How can we help?"
                         placeholderTextColor={PLACEHOLDER}
+                        returnKeyType="next"
+                        maxLength={LIMITS.subjectMax}
                         style={styles.input}
                         maxFontSizeMultiplier={1.1}
+                        accessibilityLabel="Subject"
                     />
 
                     <Label text="Message" required />
                     <TextInput
                         value={message}
-                        onChangeText={(t) => {
-                            setMessage(t);
-                            if (errors.message) setErrors((p) => ({ ...p, message: undefined }));
-                        }}
+                        onChangeText={(t) => { setMessage(t); clearError("message"); }}
                         placeholder="Write your message..."
                         placeholderTextColor={PLACEHOLDER}
                         multiline
                         textAlignVertical="top"
+                        maxLength={LIMITS.messageMax}
                         style={[styles.input, styles.messageInput, errors.message && styles.inputError]}
                         maxFontSizeMultiplier={1.1}
+                        accessibilityLabel="Message"
                     />
-                    {errors.message ? <Text style={styles.error}>{errors.message}</Text> : null}
+                    <View style={styles.messageFooter}>
+                        <View style={styles.flex}>
+                            <FieldError text={errors.message} />
+                        </View>
+                        <Text style={styles.counter} maxFontSizeMultiplier={1.1}>
+                            {message.length}/{LIMITS.messageMax}
+                        </Text>
+                    </View>
                 </ScrollView>
-            </KeyboardAvoidingView>
 
-            <View style={styles.bottomContainer}>
-                <View style={styles.buttonWrapper}>
-                    <PrimaryButton
-                        title={sending ? "Sending..." : "Send Message"}
-                        onPress={handleSend}
-                        icon={
-                            <Image
-                                source={require("../../../assets/images/paw-white.png")}
-                                resizeMode="contain"
-                                style={styles.buttonPaw}
-                            />
-                        }
-                    />
+                <View style={styles.bottomContainer}>
+                    <View style={styles.buttonWrapper}>
+                        <PrimaryButton
+                            title={sending ? "Sending..." : "Send Message"}
+                            onPress={handleSend}
+                            icon={
+                                <Image
+                                    source={require("../../../assets/images/paw-white.png")}
+                                    resizeMode="contain"
+                                    style={styles.buttonPaw}
+                                />
+                            }
+                        />
+                    </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FFFFFF", overflow: "hidden" },
-    content: { paddingHorizontal: SIDE, paddingTop: s(6), paddingBottom: s(140) },
+    flex: { flex: 1 },
+    content: { paddingHorizontal: SIDE, paddingTop: s(6), paddingBottom: s(24) },
 
     title: {
+        textAlign: "center",
         fontFamily: "Fredoka_600SemiBold",
         fontSize: s(26),
         lineHeight: s(32),
@@ -186,6 +235,7 @@ const styles = StyleSheet.create({
     label: {
         marginTop: s(14),
         marginBottom: s(6),
+        marginLeft: s(4),
         fontFamily: "Nunito_700Bold",
         fontSize: s(14),
         color: BROWN,
@@ -214,12 +264,16 @@ const styles = StyleSheet.create({
         fontSize: s(11.5),
         color: ERROR,
     },
+    messageFooter: { flexDirection: "row", alignItems: "flex-start" },
+    counter: {
+        marginTop: s(4),
+        marginRight: s(6),
+        fontFamily: "Nunito_400Regular",
+        fontSize: s(11.5),
+        color: PLACEHOLDER,
+    },
 
     bottomContainer: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
         paddingTop: s(10),
         paddingBottom: s(27),
         backgroundColor: "#FFFFFF",

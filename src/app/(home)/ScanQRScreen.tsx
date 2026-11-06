@@ -14,6 +14,8 @@ import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenHeader, { C, PawBackground, SIDE, s, useAppFonts } from "@/components/SectionHeader";
 import { pendingGuardianInvite } from "@/services/pendingGuardianInvite";
+import { petcardApi } from "@/services/petcardApi";
+import { ApiError } from "@/services/apiClient";
 
 function extractQr(value: string): { token: string; mode: "invite" | "public" } | null {
   const trimmed = value.trim();
@@ -36,6 +38,15 @@ export default function ScanQRScreen() {
     const parsed = extractQr(value);
     if (!parsed) { Alert.alert("Invalid PetCard QR", "Please scan a valid PetCard QR code."); setScanned(false); return; }
     setScanned(true);
+    if (parsed.mode === "public") {
+      /* Your own pet's QR must not open at all. */
+      try { await petcardApi.lookupPublicPetQr(parsed.token); }
+      catch (error) {
+        if (error instanceof ApiError && error.code === "ALREADY_OWNER") { Alert.alert("This is your own pet", "You can't scan your own pet's QR code. Scan someone else's PetCard QR."); setScanned(false); return; }
+        if (error instanceof ApiError && (error.status === 404 || error.code === "PET_QR_INVALID")) { Alert.alert("Invalid PetCard QR", "This QR code is invalid or expired."); setScanned(false); return; }
+        /* any other error (offline etc.): let the preview screen deal with it */
+      }
+    }
     if (parsed.mode === "invite") {
       try { await pendingGuardianInvite.save(parsed.token); }
       catch { Alert.alert("Invite unavailable", "Could not securely save this invite. Please scan again."); setScanned(false); return; }

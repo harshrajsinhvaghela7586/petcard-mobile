@@ -11,6 +11,7 @@ import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import NoPetPopup from "@/components/NoPetPopup";
 import { useTracker } from "@/hooks/use-tracker";
 import { router } from "expo-router";
+import { playClickSound } from "@/services/whistleSounds";
 import { ArcRing, C, LogCard, Shell, nowTime, s } from "../../components/TrackKit";
 
 const COMMANDS = ["Sit", "Come", "Stay", "Down", "Heel"];
@@ -33,6 +34,7 @@ export default function ClickerScreen() {
 
     const click = () => {
         if (!hasPet) return;
+        playClickSound();
         void add("clicks", { label: COMMANDS[total % COMMANDS.length], amount: 1, time: nowTime() });
         /* count pop */
         bump.setValue(1.25);

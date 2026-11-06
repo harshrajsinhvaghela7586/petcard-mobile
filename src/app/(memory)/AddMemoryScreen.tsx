@@ -21,20 +21,22 @@ import ScreenHeader, {
     useAppFonts,
 } from "@/components/SectionHeader";
 import PrimaryButton from "@/components/Button/PrimaryButton";
+import DateField, { toIsoDate } from "@/components/DateField";
 import { petcardApi } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
+import { uploadLocalPhoto } from "@/services/photoUpload";
 
 const MAX_IMAGES = 6;
 const TITLE_MAX = 60;
 const NOTE_MAX = 200;
 
-const formatToday = () => {
-    const d = new Date();
-    const m = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ][d.getMonth()];
-    return `${String(d.getDate()).padStart(2, "0")} ${m} ${d.getFullYear()}`;
+/* Edit mode me date "05 Nov 2026" jaisa text aata hai -> Date me badlo (galat ho to aaj ki date). */
+const parseParamDate = (value?: string): Date => {
+    if (value) {
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) return d;
+    }
+    return new Date();
 };
 
 /*
@@ -63,7 +65,7 @@ export default function AddMemoryScreen() {
         }
     });
     const [title, setTitle] = useState(params.title ?? "");
-    const [date, setDate] = useState(params.date ?? formatToday());
+    const [date, setDate] = useState<Date | null>(() => parseParamDate(params.date));
     const [note, setNote] = useState(params.note ?? "");
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
@@ -108,9 +110,8 @@ export default function AddMemoryScreen() {
         if (saving) return;
         if (!isEdit && images.length === 0) { setError("Please add at least one photo."); return; }
         if (!title.trim()) { setError("Please give this memory a title."); return; }
-        const parsedDate = new Date(date);
-        if (Number.isNaN(parsedDate.getTime())) { setError("Please enter a valid date."); return; }
-        const dateKey = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(parsedDate.getDate()).padStart(2, "0")}`;
+        if (!date) { setError("Please select a date."); return; }
+        const dateKey = toIsoDate(date);
         setSaving(true);
         try {
             const { pets } = await petcardApi.listPets();
@@ -119,16 +120,8 @@ export default function AddMemoryScreen() {
             let photo: { publicId: string; width?: number; height?: number; format?: string } | undefined;
             const localImage = images.find((uri) => !uri.startsWith("https://") && !uri.startsWith("http://"));
             if (localImage) {
-                const signed = await petcardApi.signUpload("memory", pet.id);
-                const form = new FormData();
-                Object.entries(signed.upload.params).forEach(([key, value]) => form.append(key, value));
-                form.append("api_key", signed.upload.apiKey);
-                form.append("signature", signed.upload.signature);
-                form.append("file", { uri: localImage, name: `memory-${Date.now()}.jpg`, type: "image/jpeg" } as any);
-                const uploadResponse = await fetch(signed.upload.uploadUrl, { method: "POST", body: form });
-                const uploaded = await uploadResponse.json();
-                if (!uploadResponse.ok || !uploaded?.public_id) throw new Error(uploaded?.error?.message || "Photo upload failed.");
-                photo = { publicId: uploaded.public_id, width: uploaded.width, height: uploaded.height, format: uploaded.format };
+                const uploaded = await uploadLocalPhoto(localImage, "memory", pet.id);
+                photo = { publicId: uploaded.publicId, width: uploaded.width, height: uploaded.height, format: uploaded.format };
             }
             const payload: { title: string; caption: string; date: string; photo?: typeof photo } = { title: title.trim(), caption: note.trim(), date: dateKey };
             if (photo) payload.photo = photo;
@@ -258,19 +251,15 @@ export default function AddMemoryScreen() {
                     </View>
                     <Text style={styles.counter}>{title.length}/{TITLE_MAX}</Text>
 
-                    {/* DATE */}
-                    <Text style={styles.label} maxFontSizeMultiplier={1.1}>Date</Text>
-                    <View style={[styles.inputBox, styles.dateBox]}>
-                        <TextInput
-                            value={date}
-                            onChangeText={setDate}
-                            placeholder="DD Mon YYYY"
-                            placeholderTextColor="#B8A090"
-                            style={[styles.input, { flex: 1 }]}
-                            maxFontSizeMultiplier={1.1}
-                        />
-                        <Ionicons name="calendar-outline" size={s(18)} color={C.orange} />
-                    </View>
+                    {/* DATE (date picker) */}
+                    <DateField
+                        label="Date"
+                        value={date}
+                        onChange={(d) => { setDate(d); setError(""); }}
+                        maximumDate={new Date()}
+                        labelStyle={styles.label}
+                        fieldStyle={styles.dateField}
+                    />
 
                     {/* NOTE */}
                     <Text style={styles.label} maxFontSizeMultiplier={1.1}>Add a note</Text>
@@ -422,7 +411,13 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFAF4",
         paddingHorizontal: s(14),
     },
-    dateBox: { flexDirection: "row", alignItems: "center" },
+    dateField: {
+        height: s(48),
+        borderRadius: s(14),
+        borderColor: C.orange,
+        backgroundColor: "#FFFAF4",
+        paddingHorizontal: s(14),
+    },
     input: {
         paddingVertical: s(12),
         fontFamily: "Nunito_400Regular",

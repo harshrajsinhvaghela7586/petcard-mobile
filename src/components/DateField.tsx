@@ -3,8 +3,11 @@ import {
     Modal,
     Platform,
     Pressable,
+    StyleProp,
     StyleSheet,
-    View
+    TextStyle,
+    View,
+    ViewStyle
 } from "react-native";
 import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
@@ -25,10 +28,13 @@ type Props = {
     placeholder?: string;
     /** true => X button se date hata sakte hain (optional fields) */
     clearable?: boolean;
+    /** optional style overrides so the field can match other screens */
+    labelStyle?: StyleProp<TextStyle>;
+    fieldStyle?: StyleProp<ViewStyle>;
 };
 
 /** Tap -> native date picker (Android dialog / iOS sheet). Text input nahi, isliye galat date format nahi ho sakta. */
-export default function DateField({ label, value, onChange, minimumDate, maximumDate, placeholder = "Select date", clearable }: Props) {
+export default function DateField({ label, value, onChange, minimumDate, maximumDate, placeholder = "Select date", clearable, labelStyle, fieldStyle }: Props) {
     const [iosOpen, setIosOpen] = useState(false);
     const [draft, setDraft] = useState<Date>(value ?? new Date());
 
@@ -43,8 +49,8 @@ export default function DateField({ label, value, onChange, minimumDate, maximum
 
     return (
         <>
-            <Text style={styles.label} maxFontSizeMultiplier={1.1}>{label}</Text>
-            <Pressable onPress={open} style={styles.field}>
+            <Text style={[styles.label, labelStyle]} maxFontSizeMultiplier={1.1}>{label}</Text>
+            <Pressable onPress={open} style={[styles.field, fieldStyle]}>
                 <MaterialCommunityIcons name="calendar-blank-outline" size={s(18)} color={C.orange} />
                 <Text style={[styles.value, !value && { color: C.muted }]} maxFontSizeMultiplier={1.1}>
                     {value ? fmtDisplayDate(value) : placeholder}

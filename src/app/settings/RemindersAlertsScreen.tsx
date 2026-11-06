@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { getReminderPrefs, saveReminderPrefs, TONES, previewTone, type ToneKey } from "@/services/reminderPrefs";
+import {
+    getReminderPrefs,
+    saveReminderPrefs,
+    TONES,
+    previewTone,
+    type ToneKey,
+    type VibrateKey,
+} from "@/services/reminderPrefs";
 import {
     Alert,
     Image,
@@ -8,6 +15,7 @@ import {
     ScrollView,
     StyleSheet,
     Switch,
+    useWindowDimensions,
     View,
     Vibration
 } from "react-native";
@@ -24,6 +32,7 @@ import {
 
 import { s } from "@/constants/scale";
 import { petcardApi } from "@/services/petcardApi";
+import PrimaryButton from "@/components/Button/PrimaryButton";
 
 const C = {
     orange: "#FF7A00",
@@ -35,17 +44,92 @@ const C = {
     white: "#FFFFFF",
 };
 
+const PAW = require("../../../assets/images/paw.png");
+
 const VIBRATE_OPTIONS = [
     { key: "off", label: "Off", pattern: 0 },
     { key: "default", label: "Default", pattern: 400 },
     { key: "short", label: "Short", pattern: 120 },
     { key: "long", label: "Long", pattern: 1000 },
-] as const;
+] as const satisfies ReadonlyArray<{ key: VibrateKey; label: string; pattern: number }>;
 
-type VibrateKey = (typeof VIBRATE_OPTIONS)[number]["key"];
+/* ------------------------------------------------------------------
+ * Small shared pieces (both popups use them, so they look the same)
+ * ------------------------------------------------------------------ */
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+function RadioOption({
+    label,
+    selected,
+    onPress,
+    icon,
+}: {
+    label: string;
+    selected: boolean;
+    onPress: () => void;
+    icon?: IconName;
+}) {
+    return (
+        <Pressable
+            style={[styles.option, selected && styles.optionSelected]}
+            onPress={onPress}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={label}
+        >
+            <View style={[styles.radio, selected && styles.radioSelected]}>
+                {selected ? <View style={styles.radioDot} /> : null}
+            </View>
+            <Text style={styles.optionText} maxFontSizeMultiplier={1.1}>
+                {label}
+            </Text>
+            {icon ? (
+                <MaterialCommunityIcons name={icon} size={s(20)} color={selected ? C.orange : C.muted} />
+            ) : null}
+        </Pressable>
+    );
+}
+
+function DialogFrame({
+    visible,
+    onClose,
+    title,
+    sub,
+    children,
+}: {
+    visible: boolean;
+    onClose: () => void;
+    title: string;
+    sub: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <Modal
+            visible={visible}
+            transparent
+            animationType="fade"
+            statusBarTranslucent
+            onRequestClose={onClose}
+        >
+            {/* Tap outside closes; taps inside the card do not. */}
+            <Pressable style={styles.overlay} onPress={onClose}>
+                <Pressable style={styles.dialog} onPress={(e) => e.stopPropagation()}>
+                    <Image source={PAW} resizeMode="contain" style={styles.dialogPawTop} />
+                    <Image source={PAW} resizeMode="contain" style={styles.dialogPawBottom} />
+
+                    <Text style={styles.dialogTitle} maxFontSizeMultiplier={1.1}>{title}</Text>
+                    <Text style={styles.dialogSub} maxFontSizeMultiplier={1.1}>{sub}</Text>
+
+                    {children}
+                </Pressable>
+            </Pressable>
+        </Modal>
+    );
+}
 
 export default function RemindersAlertsScreen() {
     const insets = useSafeAreaInsets();
+    const { height } = useWindowDimensions();
 
     const [fontsLoaded] = useFonts({
         Fredoka_600SemiBold,
@@ -53,17 +137,27 @@ export default function RemindersAlertsScreen() {
         Nunito_700Bold,
     });
 
-    /* Abhi local state - backend/settings storage baad me */
+    /* Mute is saved on the server (profile); tone and vibrate are saved on this device. */
     const [muted, setMuted] = useState(false);
     const [savingMute, setSavingMute] = useState(false);
     const [vibrate, setVibrate] = useState<VibrateKey>("default");
+    const [vibrateOpen, setVibrateOpen] = useState(false);
+    const [tone, setTone] = useState<ToneKey>("system");
+    const [toneOpen, setToneOpen] = useState(false);
+
     useEffect(() => {
         let alive = true;
         petcardApi.getProfile().then(({ user }) => {
             if (alive) setMuted(user.notificationPrefs?.push === false);
         }).catch(() => undefined);
+        getReminderPrefs().then((p) => {
+            if (!alive) return;
+            setTone(p.tone);
+            setVibrate(p.vibrate);
+        });
         return () => { alive = false; };
     }, []);
+
     const updateMute = async (nextMuted: boolean) => {
         if (savingMute) return;
         setSavingMute(true);
@@ -72,24 +166,16 @@ export default function RemindersAlertsScreen() {
             setMuted(nextMuted);
         } catch (error) {
             Alert.alert("Could not update reminders", error instanceof Error ? error.message : "Please try again.");
-        } finally { setSavingMute(false); }
+        } finally {
+            setSavingMute(false);
+        }
     };
-    const [vibrateOpen, setVibrateOpen] = useState(false);
-    const [tone, setTone] = useState<ToneKey>("system");
-    const [toneOpen, setToneOpen] = useState(false);
-    useEffect(() => {
-        getReminderPrefs().then((p) => { setTone(p.tone); setVibrate(p.vibrate); });
-    }, []);
+
     const pickTone = (key: ToneKey) => {
         setTone(key);
         void saveReminderPrefs({ tone: key });
         previewTone(key);
     };
-
-    if (!fontsLoaded) return null;
-
-    const vibrateLabel =
-        VIBRATE_OPTIONS.find((o) => o.key === vibrate)?.label ?? "Default";
 
     const pickVibrate = (key: VibrateKey) => {
         const option = VIBRATE_OPTIONS.find((o) => o.key === key);
@@ -103,34 +189,27 @@ export default function RemindersAlertsScreen() {
         if (option && option.pattern > 0) Vibration.vibrate(option.pattern);
     };
 
+    if (!fontsLoaded) return null;
+
+    const vibrateLabel = VIBRATE_OPTIONS.find((o) => o.key === vibrate)?.label ?? "Default";
+    const toneLabel = TONES.find((x) => x.key === tone)?.label ?? "System default";
+
     return (
         <View style={styles.container}>
-            <Image
-                source={require("../../../assets/images/paw.png")}
-                resizeMode="contain"
-                style={[styles.paw, styles.pawTopLeft]}
-            />
-            <Image
-                source={require("../../../assets/images/paw.png")}
-                resizeMode="contain"
-                style={[styles.paw, styles.pawTopRight]}
-            />
-            <Image
-                source={require("../../../assets/images/paw.png")}
-                resizeMode="contain"
-                style={[styles.paw, styles.pawBottomLeft]}
-            />
-            <Image
-                source={require("../../../assets/images/paw.png")}
-                resizeMode="contain"
-                style={[styles.paw, styles.pawBottomRight]}
-            />
+            <Image source={PAW} resizeMode="contain" style={[styles.paw, styles.pawTopLeft]} />
+            <Image source={PAW} resizeMode="contain" style={[styles.paw, styles.pawTopRight]} />
+            <Image source={PAW} resizeMode="contain" style={[styles.paw, styles.pawBottomLeft]} />
+            <Image source={PAW} resizeMode="contain" style={[styles.paw, styles.pawBottomRight]} />
 
-            {/* ==============================
-                TOP (back + title + dog) - same rahega
-            ============================== */}
+            {/* ---------- TOP (back button) ---------- */}
             <View style={[styles.topBar, { paddingTop: insets.top + s(8) }]}>
-                <Pressable style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+                <Pressable
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                >
                     <Ionicons name="chevron-back" size={s(26)} color={C.brown} />
                 </Pressable>
             </View>
@@ -159,9 +238,7 @@ export default function RemindersAlertsScreen() {
                     </View>
                 </View>
 
-                {/* ==============================
-                    SETTINGS (yahi hissa naya hai)
-                ============================== */}
+                {/* ---------- SETTINGS ---------- */}
                 <View style={styles.list}>
                     {/* MUTE */}
                     <View style={styles.row}>
@@ -184,34 +261,18 @@ export default function RemindersAlertsScreen() {
                     </View>
 
                     {/* NOTIFICATION TONE */}
-                    <Pressable style={[styles.row, muted && styles.rowDim]}>
-                        <View style={styles.rowIcon}>
-                            <MaterialCommunityIcons name="music-note" size={s(30)} color={C.orange} />
-                        </View>
-                        <View style={styles.rowText}>
-                            <Text style={styles.rowTitle} maxFontSizeMultiplier={1.1}>
-                                Notification tone
-                            </Text>
-                            <Text style={styles.rowSub} maxFontSizeMultiplier={1.1}>
-                                Default ringtone (Encounter)
-                            </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={s(22)} color={C.brown} />
-                    </Pressable>
-
-                    {/* NOTIFICATION TONE */}
                     <Pressable
                         style={[styles.row, muted && styles.rowDim]}
                         onPress={() => setToneOpen(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Notification tone, ${toneLabel}`}
                     >
                         <View style={styles.rowIcon}>
                             <MaterialCommunityIcons name="music-note" size={s(30)} color={C.orange} />
                         </View>
                         <View style={styles.rowText}>
                             <Text style={styles.rowTitle} maxFontSizeMultiplier={1.1}>Notification tone</Text>
-                            <Text style={styles.rowSub} maxFontSizeMultiplier={1.1}>
-                                {TONES.find((x) => x.key === tone)?.label}
-                            </Text>
+                            <Text style={styles.rowSub} maxFontSizeMultiplier={1.1}>{toneLabel}</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={s(22)} color={C.brown} />
                     </Pressable>
@@ -220,93 +281,79 @@ export default function RemindersAlertsScreen() {
                     <Pressable
                         style={[styles.row, muted && styles.rowDim]}
                         onPress={() => setVibrateOpen(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Vibrate, ${vibrateLabel}`}
                     >
                         <View style={styles.rowIcon}>
                             <MaterialCommunityIcons name="vibrate" size={s(30)} color={C.orange} />
                         </View>
                         <View style={styles.rowText}>
                             <Text style={styles.rowTitle} maxFontSizeMultiplier={1.1}>Vibrate</Text>
-                            <Text style={styles.rowSub} maxFontSizeMultiplier={1.1}>
-                                {vibrateLabel}
-                            </Text>
+                            <Text style={styles.rowSub} maxFontSizeMultiplier={1.1}>{vibrateLabel}</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={s(22)} color={C.brown} />
                     </Pressable>
                 </View>
             </ScrollView>
 
-            {/* ==============================
-                VIBRATE POPUP
-            ============================== */}
-            <Modal visible={toneOpen} transparent animationType="fade" onRequestClose={() => setToneOpen(false)}>
-                <Pressable style={styles.overlay} onPress={() => setToneOpen(false)}>
-                    <View style={styles.dialog}>
-                        <Text style={styles.dialogTitle} maxFontSizeMultiplier={1.1}>Notification tone</Text>
-                        {TONES.map((o) => (
-                            <Pressable key={o.key} onPress={() => pickTone(o.key)} style={styles.option}>
-                                <Text style={styles.optionText} maxFontSizeMultiplier={1.1}>{o.label}</Text>
-                                {tone === o.key ? <Ionicons name="checkmark-circle" size={s(20)} color={C.orange} /> : null}
-                            </Pressable>
-                        ))}
-                        <Pressable style={styles.cancel} onPress={() => setToneOpen(false)}>
-                            <Text style={styles.cancelText} maxFontSizeMultiplier={1.1}>Done</Text>
-                        </Pressable>
-                    </View>
-                </Pressable>
-            </Modal>
-
-            <Modal
-                visible={vibrateOpen}
-                transparent
-                animationType="fade"
-                statusBarTranslucent
-                onRequestClose={() => setVibrateOpen(false)}
+            {/* ---------- NOTIFICATION TONE POPUP ---------- */}
+            <DialogFrame
+                visible={toneOpen}
+                onClose={() => setToneOpen(false)}
+                title="Notification tone"
+                sub="Tap a tone to hear it, then press Done."
             >
-                <Pressable style={styles.overlay} onPress={() => setVibrateOpen(false)}>
-                    <Pressable style={styles.dialog} onPress={(e) => e.stopPropagation()}>
-                        <Image
-                            source={require("../../../assets/images/paw.png")}
-                            resizeMode="contain"
-                            style={styles.dialogPawTop}
+                {/* Scrolls on small screens so the Done button is never pushed off the card. */}
+                <ScrollView
+                    style={{ maxHeight: height * 0.42 }}
+                    contentContainerStyle={styles.options}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled
+                >
+                    {TONES.map((o) => (
+                        <RadioOption
+                            key={o.key}
+                            label={o.label}
+                            selected={tone === o.key}
+                            onPress={() => pickTone(o.key)}
+                            icon={o.key === "system" ? "cellphone" : "volume-medium"}
                         />
-                        <Image
-                            source={require("../../../assets/images/paw.png")}
-                            resizeMode="contain"
-                            style={styles.dialogPawBottom}
+                    ))}
+                </ScrollView>
+
+                <PrimaryButton
+                    title="Done"
+                    onPress={() => setToneOpen(false)}
+                    style={{ alignSelf: "stretch", marginTop: s(16) }}
+                />
+            </DialogFrame>
+
+            {/* ---------- VIBRATE POPUP ---------- */}
+            <DialogFrame
+                visible={vibrateOpen}
+                onClose={() => setVibrateOpen(false)}
+                title="Vibrate"
+                sub="Choose how you want your phone to vibrate."
+            >
+                <View style={styles.options}>
+                    {VIBRATE_OPTIONS.map((o) => (
+                        <RadioOption
+                            key={o.key}
+                            label={o.label}
+                            selected={o.key === vibrate}
+                            onPress={() => pickVibrate(o.key)}
                         />
+                    ))}
+                </View>
 
-                        <Text style={styles.dialogTitle} maxFontSizeMultiplier={1.1}>Vibrate</Text>
-                        <Text style={styles.dialogSub} maxFontSizeMultiplier={1.1}>
-                            Choose how you want your phone to vibrate.
-                        </Text>
-
-                        <View style={styles.options}>
-                            {VIBRATE_OPTIONS.map((o) => {
-                                const selected = o.key === vibrate;
-
-                                return (
-                                    <Pressable
-                                        key={o.key}
-                                        style={[styles.option, selected && styles.optionSelected]}
-                                        onPress={() => pickVibrate(o.key)}
-                                    >
-                                        <View style={[styles.radio, selected && styles.radioSelected]}>
-                                            {selected ? <View style={styles.radioDot} /> : null}
-                                        </View>
-                                        <Text style={styles.optionText} maxFontSizeMultiplier={1.1}>
-                                            {o.label}
-                                        </Text>
-                                    </Pressable>
-                                );
-                            })}
-                        </View>
-
-                        <Pressable style={styles.cancel} onPress={() => setVibrateOpen(false)}>
-                            <Text style={styles.cancelText} maxFontSizeMultiplier={1.1}>Cancel</Text>
-                        </Pressable>
-                    </Pressable>
+                <Pressable
+                    style={styles.cancel}
+                    onPress={() => setVibrateOpen(false)}
+                    accessibilityRole="button"
+                >
+                    <Text style={styles.cancelText} maxFontSizeMultiplier={1.1}>Cancel</Text>
                 </Pressable>
-            </Modal>
+            </DialogFrame>
         </View>
     );
 }
@@ -413,7 +460,7 @@ const styles = StyleSheet.create({
         marginTop: s(2),
     },
 
-    /* VIBRATE DIALOG */
+    /* POPUPS (tone + vibrate) */
     overlay: {
         flex: 1,
         backgroundColor: "rgba(20, 8, 0, 0.45)",
@@ -491,6 +538,7 @@ const styles = StyleSheet.create({
         backgroundColor: C.orange,
     },
     optionText: {
+        flex: 1,
         marginLeft: s(12),
         fontFamily: "Nunito_700Bold",
         fontSize: s(16),

@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
         paddingBottom: s(8),
         backgroundColor: "#FFFFFF",
         alignItems: "center",
-        zIndex: 20,
+
     },
     buttonWrapper: {
         width: "96%",

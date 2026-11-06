@@ -44,9 +44,10 @@ interface Props {
     avatarKey?: string;
     photoUrl?: string | null;
     unreadCount?: number;
+    requestCount?: number;
 }
 
-export default function PetHubDrawer({ visible, onClose, petName = "your pet", petType = "dog", avatarKey = "", photoUrl = null, unreadCount = 0 }: Props) {
+export default function PetHubDrawer({ visible, onClose, petName = "your pet", petType = "dog", avatarKey = "", photoUrl = null, unreadCount = 0, requestCount = 0 }: Props) {
     const { pet: hubPet, pets: hubPets } = useSelectedPet();
     const guardianOnly = (hubPets?.length ?? 0) > 0 && hubPets.every((p) => p.role && p.role !== "owner");
     const isOwnerHere = !hubPet?.role || hubPet.role === "owner";
@@ -190,6 +191,11 @@ export default function PetHubDrawer({ visible, onClose, petName = "your pet", p
                                     </Text>
                                 </View>
 
+                                {it.key === "guardianRequests" && requestCount > 0 ? (
+                                    <View style={[styles.badge, styles.rowBadge]}>
+                                        <Text style={styles.badgeText} maxFontSizeMultiplier={1}>{requestCount > 99 ? "99+" : requestCount}</Text>
+                                    </View>
+                                ) : null}
                                 <Ionicons name="chevron-forward" size={s(16)} color={C.iconMuted} />
                             </Pressable>
                         ))}
@@ -248,6 +254,7 @@ const styles = StyleSheet.create({
         borderColor: C.white,
     },
     badgeText: { fontFamily: "Nunito_700Bold", fontSize: s(9), color: C.white },
+    rowBadge: { position: "relative", top: 0, right: 0, marginRight: s(8) },
 
     avatarWrap: { alignSelf: "center", marginTop: s(14) },
     avatarRing: {

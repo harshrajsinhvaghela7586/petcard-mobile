@@ -339,14 +339,6 @@ export default function SignupScreen() {
         [password, confirmPassword]
     );
 
-    const handleGoogleSignup = async () => {
-        if (!acceptedTerms) {
-            Alert.alert("Terms required", "Please accept the terms to continue.");
-            return;
-        }
-        await signInWithGoogle();
-    };
-
     const handleSignup = async () => {
         if (!fullName.trim()) return Alert.alert("Name required", "Enter your full name.");
         const normalizedEmail = email.trim().toLowerCase();

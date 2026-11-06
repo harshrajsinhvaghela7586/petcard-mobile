@@ -30,7 +30,20 @@ export async function pickAndUploadPhoto(
   });
   if (picked.canceled || !picked.assets?.[0]) return null;
   const asset = picked.assets[0];
+  return uploadLocalPhoto(asset.uri, purpose, petId, asset.mimeType ?? undefined);
+}
 
+/**
+ * Uploads an image that is already on the device (file:// or content:// uri) to Cloudinary
+ * using a server-signed request. Use this instead of FormData + { uri, name, type }, which
+ * throws "Unsupported FormDataPart implementation" on newer Expo / React Native.
+ */
+export async function uploadLocalPhoto(
+  uri: string,
+  purpose: "user_photo" | "pet_photo" | "memory",
+  petId?: string,
+  mimeType?: string
+): Promise<UploadedPhoto> {
   const { upload } = await petcardApi.signUpload(purpose, petId);
 
   // Cloudinary needs exactly the signed params (plus api_key + signature); all values as strings.
@@ -42,11 +55,11 @@ export async function pickAndUploadPhoto(
     parameters[key] = String(value);
   });
 
-  const result = await FileSystem.uploadAsync(upload.uploadUrl, asset.uri, {
+  const result = await FileSystem.uploadAsync(upload.uploadUrl, uri, {
     httpMethod: "POST",
     uploadType: FileSystem.FileSystemUploadType.MULTIPART,
     fieldName: "file",
-    mimeType: asset.mimeType ?? "image/jpeg",
+    mimeType: mimeType ?? "image/jpeg",
     parameters,
   });
 

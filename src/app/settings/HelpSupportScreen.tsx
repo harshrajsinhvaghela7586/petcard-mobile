@@ -1,12 +1,5 @@
 import React from "react";
-import {
-    Image,
-    Linking,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View
-} from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -17,32 +10,40 @@ import ScreenHeader, {
     s,
     useAppFonts,
 } from "@/components/SectionHeader";
-import PrimaryButton from "@/components/Button/PrimaryButton";
 
-/* TODO: real support number yahan daalna */
 const SUPPORT_EMAIL = "info@petcard.in";
-const SUPPORT_PHONE = "+91 00000 00000";
 const SUPPORT_HOURS = "Mon - Sat, 10:00 AM - 6:00 PM";
+
+type Row = {
+    icon: React.ComponentProps<typeof Ionicons>["name"];
+    label: string;
+    value: string;
+    onPress?: () => void;
+};
+
+const open = (url: string) => {
+    Linking.openURL(url).catch(() => undefined);
+};
 
 export default function HelpSupportScreen() {
     const [fontsLoaded] = useAppFonts();
     if (!fontsLoaded) return null;
 
-    const rows = [
+    const rows: Row[] = [
         {
-            icon: "mail-outline" as const,
+            icon: "mail-outline",
             label: "Email Support",
             value: SUPPORT_EMAIL,
-            onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
+            onPress: () => open(`mailto:${SUPPORT_EMAIL}`),
         },
         {
-            icon: "call-outline" as const,
-            label: "Call Support",
-            value: SUPPORT_PHONE,
-            onPress: () => Linking.openURL(`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`),
+            icon: "chatbubble-ellipses-outline",
+            label: "Contact Us",
+            value: "Send us a message or get in touch",
+            onPress: () => router.push("/ContactusScreen" as any),
         },
         {
-            icon: "time-outline" as const,
+            icon: "time-outline",
             label: "Support Hours",
             value: SUPPORT_HOURS,
         },
@@ -58,13 +59,14 @@ export default function HelpSupportScreen() {
                 contentContainerStyle={styles.content}
             >
                 <View style={styles.hero}>
-                    <Ionicons name="chatbubbles" size={s(34)} color={C.orange} />
+                    <View style={styles.heroIconCircle}>
+                        <Ionicons name="chatbubbles" size={s(32)} color={C.orange} />
+                    </View>
                     <Text style={styles.heroTitle} maxFontSizeMultiplier={1.1}>
                         How can we help?
                     </Text>
                     <Text style={styles.heroText} maxFontSizeMultiplier={1.1}>
-                        Chat with our AI assistant for quick answers about your pet&apos;s
-                        card, reminders, health records and more.
+                        Questions, feedback or a problem with the app? Reach out and we will get back to you.
                     </Text>
                 </View>
 
@@ -77,13 +79,14 @@ export default function HelpSupportScreen() {
                         key={r.label}
                         disabled={!r.onPress}
                         onPress={r.onPress}
-                        style={styles.row}
+                        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
                         accessibilityRole={r.onPress ? "button" : "text"}
+                        accessibilityLabel={`${r.label}: ${r.value}`}
                     >
                         <View style={styles.iconBox}>
                             <Ionicons name={r.icon} size={s(20)} color={C.orange} />
                         </View>
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.rowTextWrap}>
                             <Text style={styles.rowLabel} maxFontSizeMultiplier={1.1}>
                                 {r.label}
                             </Text>
@@ -97,22 +100,6 @@ export default function HelpSupportScreen() {
                     </Pressable>
                 ))}
             </ScrollView>
-
-            <View style={styles.bottomContainer}>
-                <View style={styles.buttonWrapper}>
-                    <PrimaryButton
-                        title="Chat with AI Assistant"
-                        onPress={() => router.push("/AIChatScreen" as any)}
-                        icon={
-                            <Image
-                                source={require("../../../assets/images/paw-white.png")}
-                                resizeMode="contain"
-                                style={styles.buttonPaw}
-                            />
-                        }
-                    />
-                </View>
-            </View>
         </View>
     );
 }
@@ -123,14 +110,23 @@ const styles = StyleSheet.create({
 
     hero: {
         alignItems: "center",
-        padding: s(18),
-        borderRadius: s(20),
+        paddingVertical: s(22),
+        paddingHorizontal: s(18),
+        borderRadius: s(22),
         backgroundColor: "#FFFAF4",
         borderWidth: 1,
         borderColor: C.peachBorder,
     },
+    heroIconCircle: {
+        width: s(64),
+        height: s(64),
+        borderRadius: s(32),
+        backgroundColor: "#FFE0C4",
+        alignItems: "center",
+        justifyContent: "center",
+    },
     heroTitle: {
-        marginTop: s(8),
+        marginTop: s(12),
         fontFamily: "Fredoka_600SemiBold",
         fontSize: s(22),
         color: C.orange,
@@ -142,63 +138,47 @@ const styles = StyleSheet.create({
         fontSize: s(13),
         lineHeight: s(19),
         color: C.brown,
+        opacity: 0.85,
     },
 
     heading: {
         fontFamily: "Nunito_700Bold",
-        fontSize: s(14),
+        fontSize: s(15),
         color: C.brown,
-        marginTop: s(20),
+        marginTop: s(22),
         marginBottom: s(10),
+        marginLeft: s(2),
     },
 
     row: {
         flexDirection: "row",
         alignItems: "center",
         gap: s(12),
-        padding: s(12),
+        paddingVertical: s(14),
+        paddingHorizontal: s(14),
         marginBottom: s(10),
-        borderRadius: s(14),
+        borderRadius: s(16),
         backgroundColor: C.card,
         borderWidth: 1,
         borderColor: C.peachBorder,
     },
+    rowPressed: { opacity: 0.7 },
     iconBox: {
-        width: s(40),
-        height: s(40),
-        borderRadius: s(12),
+        width: s(42),
+        height: s(42),
+        borderRadius: s(13),
         backgroundColor: "#FFE0C4",
         alignItems: "center",
         justifyContent: "center",
     },
+    rowTextWrap: { flex: 1 },
     rowLabel: { fontFamily: "Nunito_700Bold", fontSize: s(14), color: C.brown },
     rowValue: {
-        marginTop: s(1),
+        marginTop: s(2),
         fontFamily: "Nunito_400Regular",
         fontSize: s(12.5),
+        lineHeight: s(17),
         color: C.brown,
         opacity: 0.8,
-    },
-
-    bottomContainer: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingTop: s(10),
-        paddingBottom: s(27),
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        zIndex: 20,
-    },
-    buttonWrapper: { width: "96%", maxWidth: 380, position: "relative", alignSelf: "center" },
-    buttonPaw: {
-        position: "absolute",
-        top: "-30%",
-        width: s(40),
-        height: s(40),
-        marginTop: s(-11.5),
-        marginLeft: s(20),
-        zIndex: 10,
     },
 });

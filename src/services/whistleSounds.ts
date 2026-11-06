@@ -33,3 +33,18 @@ export function playWhistle(key: WhistleKey) {
         player.play();
     } catch { /* expo-audio missing */ }
 }
+
+let clickPlayer: any = null;
+/** Short "pop" for the Clicker. Reuses one player (rewinds each tap) so rapid clicks stay instant; silent if expo-audio is missing. */
+export function playClickSound() {
+    try {
+        const audio = require("expo-audio");
+        if (!clickPlayer) {
+            audio.setAudioModeAsync?.({ playsInSilentMode: true, interruptionMode: "mixWithOthers" })?.catch?.(() => {});
+            clickPlayer = audio.createAudioPlayer(require("../../assets/sounds/tone_pop.wav"));
+            clickPlayer.volume = 1;
+        }
+        clickPlayer.seekTo?.(0);
+        clickPlayer.play();
+    } catch { /* expo-audio missing */ }
+}

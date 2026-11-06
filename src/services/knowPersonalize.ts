@@ -1,5 +1,5 @@
 import type { Pet } from "./petcardApi";
-import { BREED_TRAITS, TYPE_PROFILES } from "@/constants/knowProfiles";
+import { BREED_TRAITS, TYPE_PROFILES, supportedBreedMatch } from "@/constants/knowProfiles";
 import type { Fact } from "@/components/KnowGuide";
 
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
@@ -34,10 +34,13 @@ export function makePersonalizer(pet: Pet | null) {
         return value;
     };
 
-    /* "Tailored for <pet>" card (breed + type ke hisab se) */
+    /* "Tailored for <pet>" card. Only the 7 supported breeds show their breed; any other breed typed under
+     * "Other" is saved as usual but the Know section just says "Your dog" / "Your cat" / "Your rabbit". */
     const tailored = () => {
         const breed = (pet?.breed || "").trim();
-        const trait = breed ? BREED_TRAITS.find((b) => breed.toLowerCase().includes(b.match)) : undefined;
+        const matchKey = breed ? supportedBreedMatch(type, breed) : null;
+        const trait = matchKey ? BREED_TRAITS.find((b) => b.match === matchKey) : undefined;
+        const who = `Your ${TYPE_PROFILES[type] ? prof.word : "pet"}`;
         const facts: Fact[] = trait
             ? [
                 { label: "Breed", value: breed, icon: "paw" },
@@ -49,7 +52,7 @@ export function makePersonalizer(pet: Pet | null) {
         return {
             type: "about" as const,
             heading: `Tailored for ${name}`,
-            body: trait ? `${breed}: ${trait.note} ${prof.about}` : `${breed ? `${breed} · ` : ""}${prof.about}`,
+            body: trait ? `${breed}: ${trait.note} ${prof.about}` : `${who} · ${prof.about}`,
             facts,
         };
     };

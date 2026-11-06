@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Image } from "react-native";
 import { petcardApi, Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import {
@@ -26,8 +27,8 @@ import BottomNav, { useNavHeight } from "../../components/BottomNav";
 
 type Access = "Full Access" | "View Only";
 
-type Pending = { id: string; name: string; requested: string };
-type Approved = { id: string; name: string; phone: string; access: Access; permissions: string[] };
+type Pending = { id: string; name: string; requested: string; photoUrl?: string | null };
+type Approved = { id: string; photoUrl?: string | null; name: string; phone: string; access: Access; permissions: string[] };
 
 const ACCESS_STYLE: Record<Access, { bg: string; fg: string }> = {
     "Full Access": { bg: "#E4F3D6", fg: "#5E9B2D" },
@@ -36,7 +37,9 @@ const ACCESS_STYLE: Record<Access, { bg: string; fg: string }> = {
 
 
 
-function Avatar({ size = 52 }: { size?: number }) {
+function Avatar({ size = 52, uri }: { size?: number; uri?: string | null }) {
+    const [failed, setFailed] = useState(false);
+    if (uri && !failed) return <Image source={{ uri }} onError={() => setFailed(true)} style={{ width: s(size), height: s(size), borderRadius: s(size / 2) }} />;
     return (
         <View
             style={{
@@ -86,10 +89,12 @@ export default function GuardiansScreen() {
             setPending((data.pendingRequests ?? []).map((r: any) => ({
                 id: r.id,
                 name: r.requester?.name ?? "Guardian",
+                photoUrl: r.requester?.photoUrl ?? null,
                 requested: r.createdAt ? `Requested ${new Date(r.createdAt).toLocaleDateString(appLocale())}` : "Pending approval",
             })));
             setApproved((data.members ?? []).filter((m: any) => m.role !== "owner" && !m.isYou).map((m: any) => ({
                 id: m.userId,
+                photoUrl: m.photoUrl ?? null,
                 name: m.name ?? "Guardian",
                 phone: "Contact details private",
                 permissions: Array.isArray(m.permissions) ? m.permissions : [],
@@ -209,7 +214,7 @@ export default function GuardiansScreen() {
                         <View style={styles.listCard}>
                             {pending.map((p, i) => (
                                 <View key={p.id} style={[styles.row, i > 0 && styles.rowBorder]}>
-                                    <Avatar />
+                                    <Avatar uri={p.photoUrl} />
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.rowName} maxFontSizeMultiplier={1.1} numberOfLines={1}>
                                             {p.name}
@@ -233,7 +238,7 @@ export default function GuardiansScreen() {
                 <View style={styles.listCard}>
                     {approved.map((g, i) => (
                         <View key={g.id} style={[styles.row, i > 0 && styles.rowBorder]}>
-                            <Avatar />
+                            <Avatar uri={g.photoUrl} />
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.rowName} maxFontSizeMultiplier={1.1} numberOfLines={1}>
                                     {g.name}

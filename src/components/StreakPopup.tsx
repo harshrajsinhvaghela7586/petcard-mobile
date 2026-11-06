@@ -11,6 +11,7 @@ import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { s } from "@/constants/scale";
+import PrimaryButton from "./Button/PrimaryButton";
 
 type Day = { d: string; done: boolean };
 
@@ -117,27 +118,14 @@ export default function StreakPopup({
                         ))}
                     </View>
 
-                    <View style={styles.bonusCard}>
-                        <Image
-                            source={require("../../assets/images/rewards/pawcoin.png")}
-                            resizeMode="contain"
-                            style={styles.coin}
-                        />
-                        <View style={styles.bonusText}>
-                            <Text style={styles.bonusLabel} maxFontSizeMultiplier={1.1}>
-                                Streak Bonus
-                            </Text>
-                            <Text style={styles.bonusValue} maxFontSizeMultiplier={1.1}>
-                                {`+${bonus} PawPoints`}
-                            </Text>
-                        </View>
-                    </View>
+                   <PrimaryButton
+                   style={styles.button}
+                        title=" Keep it up!"
+                        onPress={onClose}
+                        
+                    />
 
-                    <Pressable style={styles.button} onPress={onClose}>
-                        <Text style={styles.buttonText} maxFontSizeMultiplier={1.1}>
-                            Keep it up!
-                        </Text>
-                    </Pressable>
+                   
                 </Animated.View>
             </View>
         </Modal>
@@ -152,6 +140,21 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: s(22),
     },
+      buttonPaw: {
+        position: "absolute",
+
+
+        top: "-30%",
+
+        width: s(40),
+        height: s(40),
+
+        marginTop: s(-11.5),
+        marginLeft: s(20),
+
+        zIndex: 10,
+    },
+
     card: {
         width: "100%",
         maxWidth: 380,

@@ -6,15 +6,15 @@ import {
     Platform,
     Pressable,
     StyleSheet,
-    View
+    Text,
+    TextInput,
+    View,
 } from "react-native";
-import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import { Nunito_600SemiBold, Nunito_700Bold, useFonts } from "@expo-google-fonts/nunito";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import NoPetPopup from "@/components/NoPetPopup";
 import { useSelectedPet } from "@/hooks/use-selected-pet";
 import { petcardApi } from "@/services/petcardApi";
@@ -46,6 +46,17 @@ export default function AiChatScreen() {
     const [typing, setTyping] = useState(false);
     const [kbVisible, setKbVisible] = useState(false);
     const listRef = useRef<FlatList<Msg>>(null);
+
+    /* A question sent from the Know screen (Featured card) is asked once, as soon as the pet is loaded. */
+    const params = useLocalSearchParams<{ ask?: string }>();
+    const sendRef = useRef<(text: string) => void>(() => {});
+    const sentAsk = useRef<string | null>(null);
+    useEffect(() => {
+        const ask = typeof params.ask === "string" ? params.ask.trim() : "";
+        if (!ask || !fontsLoaded || !hasPet || !pet?.id || sentAsk.current === ask) return;
+        sentAsk.current = ask;
+        sendRef.current(ask);
+    }, [params.ask, fontsLoaded, hasPet, pet?.id]);
 
     useEffect(() => {
         const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -87,6 +98,8 @@ export default function AiChatScreen() {
             setTyping(false);
         }
     };
+
+    sendRef.current = send;
 
     const goBack = () => (router.canGoBack() ? router.back() : router.replace("/HomeScreen" as any));
     const showSuggestions = messages.length === 1 && hasPet;
@@ -187,12 +200,6 @@ export default function AiChatScreen() {
                         disabled={!input.trim() || typing}
                         style={[styles.sendBtn, (!input.trim() || typing) && { opacity: 0.5 }]}
                     >
-                        <LinearGradient
-                            colors={["#ff7a00", "#ff9b2f", "#ff8400", "#ffb347"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.sendGradient}
-                        />
                         <Ionicons name="send" size={s(18)} color={C.white} />
                     </Pressable>
                 </View>
@@ -339,9 +346,8 @@ const styles = StyleSheet.create({
         width: s(44),
         height: s(44),
         borderRadius: s(22),
+        backgroundColor: C.orange,
         alignItems: "center",
         justifyContent: "center",
-        overflow: "hidden",
     },
-    sendGradient: { ...StyleSheet.absoluteFill, borderRadius: s(22) },
 });

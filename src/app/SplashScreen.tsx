@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useFonts, Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
@@ -540,6 +539,14 @@ export default function SplashScreen({
        ===================================================== */
 
     return (
+        /*
+         * STATIC WHITE BACKDROP
+         *
+         * Never animated. When the splash fades out below,
+         * this white layer stays behind it, so the app's
+         * root background (black) can never show through.
+         */
+        <View style={styles.backdrop}>
         <Animated.View
             style={[
                 styles.container,
@@ -762,6 +769,7 @@ export default function SplashScreen({
                 />
             </Animated.View>
         </Animated.View>
+        </View>
     );
 }
 
@@ -770,6 +778,11 @@ export default function SplashScreen({
    ========================================================= */
 
 const styles = StyleSheet.create({
+    backdrop: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
+
     container: {
         flex: 1,
         backgroundColor: "#FFFFFF",

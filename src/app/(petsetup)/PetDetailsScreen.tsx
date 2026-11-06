@@ -210,6 +210,14 @@ export default function PetDetailsScreen() {
 
     /* "Other" select hone par user ka likha hua text */
 
+    /* New breed typed: the server checks it is real and writes all its Know pages in the background (once per name). */
+    const warmedBreed = React.useRef("");
+    const warmBreed = () => {
+        const name = customBreed.trim();
+        if (name.length < 3 || warmedBreed.current === name.toLowerCase()) return;
+        warmedBreed.current = name.toLowerCase();
+        void petcardApi.prewarmBreed(selectedPetType, name).catch(() => undefined);
+    };
     const [customBreed, setCustomBreed] =
         useState("");
 
@@ -423,6 +431,7 @@ export default function PetDetailsScreen() {
                 normalizedBirthDate = toKey(est);
             }
         }
+        if (breed === "Other") warmBreed();
         await updatePetSetupDraft({
             petType: selectedPetType,
             name: petName.trim(),
@@ -704,6 +713,7 @@ export default function PetDetailsScreen() {
                                 returnKeyType="done"
                                 onFocus={() => scrollToField("customBreed")}
                                 onSubmitEditing={Keyboard.dismiss}
+                                onEndEditing={warmBreed}
                             />
                         </View>
                     )}

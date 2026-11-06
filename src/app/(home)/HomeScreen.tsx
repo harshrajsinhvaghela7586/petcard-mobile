@@ -214,6 +214,7 @@ const [quickH, setQuickH] = useState(s(92));
     const [careStreak, setCareStreak] = useState(0);
     const [streakLastDate, setStreakLastDate] = useState<string | null>(null);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [pendingReqCount, setPendingReqCount] = useState(0);
     /* bootstrap aa chuka hai? (tab hi "pet nahi hai" popup dikhana hai) */
     const [petChecked, setPetChecked] = useState(false);
     const [noPetDismissed, setNoPetDismissed] = useState(false);
@@ -245,6 +246,7 @@ useFocusEffect(
                 setWalletPoints(data.wallet?.pawPoints ?? 0);
                 setAccountName(data.user?.name?.split(" ")[0] || "there");
                 setUnreadCount(data.unreadNotifications ?? 0);
+                setPendingReqCount(data.pendingGuardianRequests ?? 0);
                 setPetChecked(true);
 
                 const pet = await resolveSelectedPet(data.pets ?? []) as Pet | null;
@@ -469,6 +471,11 @@ setDashboardStats(STATS.map((item) => {
                     {/* menu -> Pet Hub drawer */}
                     <Pressable style={styles.menuButton} onPress={() => setHubOpen(true)}>
                         <Ionicons name="menu" size={s(24)} color={C.brown} />
+                        {pendingReqCount > 0 ? (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText} maxFontSizeMultiplier={1}>{pendingReqCount > 99 ? "99+" : pendingReqCount}</Text>
+                            </View>
+                        ) : null}
                     </Pressable>
 
                     <View style={styles.greetingBox}>
@@ -783,7 +790,7 @@ setDashboardStats(STATS.map((item) => {
             {/* ==============================
                 PET HUB DRAWER (sabse upar render hona chahiye)
             ============================== */}
-            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} petName={activePetName} petType={activePetType} avatarKey={activePetAvatarKey} photoUrl={stickerUri(activePetStickerKey) ?? activePetPhotoUrl} unreadCount={unreadCount} />
+            <PetHubDrawer visible={hubOpen} onClose={() => setHubOpen(false)} petName={activePetName} petType={activePetType} avatarKey={activePetAvatarKey} photoUrl={stickerUri(activePetStickerKey) ?? activePetPhotoUrl} unreadCount={unreadCount} requestCount={pendingReqCount} />
 
             {/* ==============================
                 POPUPS

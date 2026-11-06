@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert } from "react-native";
-import { petcardApi, Memory as ApiMemory } from "@/services/petcardApi";
+import { petcardApi, Memory as ApiMemory, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import {
     Dimensions,
@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import ScreenHeader, {
     C,
     PawBackground,
@@ -22,6 +22,9 @@ import ScreenHeader, {
     useAppFonts,
 } from "@/components/SectionHeader";
 import PrimaryButton from "@/components/Button/PrimaryButton";
+import SafeImage from "@/components/SafeImage";
+import { getPetAvatarSource } from "@/services/petAvatar";
+import { stickerUri } from "@/services/stickerImage";
 
 const { width } = Dimensions.get("window");
 
@@ -43,25 +46,25 @@ const TABS: { key: "photo" | "video" | "milestone" | "album"; label: string; ico
     { key: "album", label: "Albums", icon: "heart-outline" },
 ];
 
-/* Local illustration used only as the empty-state mascot; memory records come from the API. */
-const HUCHIKO = require("../../../assets/images/pets/huchiko.png");
-
 const RECENT_SIZE = (width - SIDE * 2 - s(10) * 3) / 3.6;
 
 export default function MemoryScreen() {
     const [fontsLoaded] = useAppFonts();
     const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("photo");
     const [memories, setMemories] = useState<Memory[]>([]);
+    const [pet, setPet] = useState<Pet | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    /* Reloads every time the screen is focused: a new sticker / memory shows up right away. */
+    useFocusEffect(useCallback(() => {
         let alive = true;
         (async () => {
             try {
                 const { pets } = await petcardApi.listPets();
-                const pet = await resolveSelectedPet(pets ?? []);
-                if (!pet?.id) { if (alive) setMemories([]); return; }
-                const result = await petcardApi.listMemories(pet.id, undefined, 30);
+                const selected = await resolveSelectedPet(pets ?? []);
+                if (alive) setPet(selected ?? null);
+                if (!selected?.id) { if (alive) setMemories([]); return; }
+                const result = await petcardApi.listMemories(selected.id, undefined, 30);
                 if (!alive) return;
                 setMemories((result.memories ?? []).map((m: ApiMemory) => {
                     const parsed = new Date(`${m.date}T12:00:00`);
@@ -74,7 +77,7 @@ export default function MemoryScreen() {
             } finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };
-    }, []);
+    }, []));
 
     /* "Photos" tab = all persisted photo memories; unsupported types remain empty until implemented. */
     const list = useMemo(
@@ -89,6 +92,11 @@ export default function MemoryScreen() {
     }, [list]);
 
     if (!fontsLoaded) return null;
+
+    /* Picture in the count card (same as the Digital PetCard): the sticker the user chose -> else the pet photo -> else the avatar (fallback). */
+    const rawSticker: any = stickerUri(pet?.activeStickerKey);
+    const stickerSource: any = rawSticker ? (typeof rawSticker === "string" ? { uri: rawSticker } : rawSticker) : null;
+    const cardImage: any = stickerSource ?? (pet?.photoUrl ? { uri: pet.photoUrl } : null);
 
     const openEdit = (m: Memory) =>
         router.push({
@@ -113,7 +121,12 @@ export default function MemoryScreen() {
 
                 {/* COUNT CARD */}
                 <View style={styles.countCard}>
-                    <Image source={HUCHIKO} resizeMode="contain" style={styles.countImage} />
+                    <SafeImage
+                        fallback={getPetAvatarSource(pet?.type, pet?.avatarKey)}
+                        source={cardImage}
+                        resizeMode="contain"
+                        style={styles.countImage}
+                    />
                     <View style={{ flex: 1, alignItems: "center" }}>
                         <Text style={styles.countNumber} maxFontSizeMultiplier={1.1}>
                             {memories.length}

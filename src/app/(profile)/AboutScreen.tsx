@@ -8,12 +8,13 @@ import {
 import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader, {
-    C,
     PawBackground,
     SIDE,
     s,
     useAppFonts,
 } from "@/components/SectionHeader";
+import ScreenLoader from "@/components/ScreenLoader";
+import { useImagesReady } from "@/hooks/use-images-ready";
 
 /* Colors (reference screenshot se liye gaye) */
 const BROWN = "#381B0E";
@@ -28,6 +29,7 @@ const DARK_HEAD = "#FFD27F";
 const DARK_TEXT = "#FDE3C5";
 
 /* require ke paths static hone chahiye (Metro limitation) */
+const PAW = require("../../../assets/images/paw.png");
 const IMG = {
     hachiko: require("../../../assets/images/about/image1.png"),
     brownie: require("../../../assets/images/about/image2.png"),
@@ -38,6 +40,12 @@ const IMG = {
     collie: require("../../../assets/images/about/image7.png"),
     bye: require("../../../assets/images/about/image8.png"),
 };
+
+/* Every image on this screen, loaded once before the page is shown (so nothing pops in one by one). */
+const ALL_IMAGES: number[] = [PAW, ...Object.values(IMG)];
+
+/* Android: decode the picture at the size it is drawn, not at its full file size (much faster, much less memory). */
+const FAST_IMAGE = { resizeMethod: "resize" as const, fadeDuration: 0 };
 
 type Variant = "peach" | "dark" | "light";
 
@@ -57,7 +65,7 @@ type CardProps = {
     title: string;
     titleColor: string;
     text: string;
-    image: any;
+    image: number;
 };
 
 function StoryCard({ variant, icon, number, title, titleColor, text, image }: CardProps) {
@@ -65,11 +73,7 @@ function StoryCard({ variant, icon, number, title, titleColor, text, image }: Ca
     return (
         <View style={[styles.card, { backgroundColor: t.bg }]}>
             {/* halka paw watermark */}
-            <Image
-                source={require("../../../assets/images/paw.png")}
-                resizeMode="contain"
-                style={styles.cardPaw}
-            />
+            <Image source={PAW} resizeMode="contain" style={styles.cardPaw} {...FAST_IMAGE} />
 
             <View style={styles.cardLeft}>
                 <View style={styles.badgeRow}>
@@ -99,7 +103,7 @@ function StoryCard({ variant, icon, number, title, titleColor, text, image }: Ca
                 </Text>
             </View>
 
-            <Image source={image} resizeMode="contain" style={styles.cardImage} />
+            <Image source={image} resizeMode="contain" style={styles.cardImage} {...FAST_IMAGE} />
         </View>
     );
 }
@@ -117,7 +121,8 @@ function Spark({ flip }: { flip?: boolean }) {
 
 export default function AboutScreen() {
     const [fontsLoaded] = useAppFonts();
-    if (!fontsLoaded) return null;
+    const imagesReady = useImagesReady(ALL_IMAGES);
+    if (!fontsLoaded || !imagesReady) return <ScreenLoader />;
 
     return (
         <View style={styles.container}>
@@ -129,7 +134,7 @@ export default function AboutScreen() {
                 contentContainerStyle={styles.content}
             >
                 {/* ---------- HERO ---------- */}
-                <View style={styles.hero}>
+                <View style={[styles.page, styles.hero]}>
                     <View style={styles.heroLeft}>
                         <Text style={styles.heroTitle} maxFontSizeMultiplier={1.1}>
                             It all started with a dog{"\n"}
@@ -141,66 +146,64 @@ export default function AboutScreen() {
                             every lost pet find their way home.
                         </Text>
                     </View>
-                    <Image source={IMG.hachiko} resizeMode="contain" style={styles.heroImage} />
+                    <Image source={IMG.hachiko} resizeMode="contain" style={styles.heroImage} {...FAST_IMAGE} />
                 </View>
 
                 {/* ---------- STORY ---------- */}
                 <View style={styles.storyBand}>
-                    <View style={styles.storyHead}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.storyTitle} maxFontSizeMultiplier={1.1}>
-                                A personal loss{"\n"}became a bigger mission.
-                            </Text>
-                            <Text style={styles.storySub} maxFontSizeMultiplier={1.1}>
-                                Our founder loved his dog deeply. He was more than a pet, he was
-                                family, a constant companion, and a part of everyday life.
-                            </Text>
+                    <View style={[styles.page, styles.storyInner]}>
+                        <View style={styles.storyHead}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.storyTitle} maxFontSizeMultiplier={1.1}>
+                                    A personal loss{"\n"}became a bigger mission.
+                                </Text>
+                                <Text style={styles.storySub} maxFontSizeMultiplier={1.1}>
+                                    Our founder loved his dog deeply. He was more than a pet, he was
+                                    family, a constant companion, and a part of everyday life.
+                                </Text>
+                            </View>
+                            <Image source={PAW} resizeMode="contain" style={styles.storyPaw} {...FAST_IMAGE} />
                         </View>
-                        <Image
-                            source={require("../../../assets/images/paw.png")}
-                            resizeMode="contain"
-                            style={styles.storyPaw}
+
+                        <StoryCard
+                            variant="peach"
+                            icon="paw"
+                            title={"It started with\nBrownie"}
+                            titleColor={PINK}
+                            text="It all started with a dog named Brownie."
+                            image={IMG.brownie}
+                        />
+                        <StoryCard
+                            variant="dark"
+                            icon="paw"
+                            title={"Everything\nchanged"}
+                            titleColor={DARK_HEAD}
+                            text="One day, Brownie went missing. The search began, but the reunion never came."
+                            image={IMG.missing}
+                        />
+                        <StoryCard
+                            variant="light"
+                            icon="paw"
+                            title={"A question\nremained"}
+                            titleColor={ORANGE_DEEP}
+                            text={
+                                "\u201CWhat if every lost pet could be recognised and connected back to the family that loves them?\u201D"
+                            }
+                            image={IMG.cat}
+                        />
+                        <StoryCard
+                            variant="peach"
+                            icon="paw"
+                            title={"The mission\nbecame PetCard"}
+                            titleColor="#5A2E10"
+                            text="That question became a mission. And that mission became PetCard."
+                            image={IMG.whiteCat}
                         />
                     </View>
-
-                    <StoryCard
-                        variant="peach"
-                        icon="paw"
-                        title={"It started with\nBrownie"}
-                        titleColor={PINK}
-                        text="It all started with a dog named Brownie."
-                        image={IMG.brownie}
-                    />
-                    <StoryCard
-                        variant="dark"
-                        icon="paw"
-                        title={"Everything\nchanged"}
-                        titleColor={DARK_HEAD}
-                        text="One day, Brownie went missing. The search began, but the reunion never came."
-                        image={IMG.missing}
-                    />
-                    <StoryCard
-                        variant="light"
-                        icon="paw"
-                        title={"A question\nremained"}
-                        titleColor={ORANGE_DEEP}
-                        text={
-                            "\u201CWhat if every lost pet could be recognised and connected back to the family that loves them?\u201D"
-                        }
-                        image={IMG.cat}
-                    />
-                    <StoryCard
-                        variant="peach"
-                        icon="paw"
-                        title={"The mission\nbecame PetCard"}
-                        titleColor="#5A2E10"
-                        text="That question became a mission. And that mission became PetCard."
-                        image={IMG.whiteCat}
-                    />
                 </View>
 
                 {/* ---------- BELIEF ---------- */}
-                <View style={styles.belief}>
+                <View style={[styles.page, styles.belief]}>
                     <View style={styles.beliefTitleRow}>
                         <Spark />
                         <Text style={styles.beliefTitle} maxFontSizeMultiplier={1.1}>
@@ -251,11 +254,12 @@ export default function AboutScreen() {
     );
 }
 
-const CARD_IMG = s(128);
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FFFFFF", overflow: "hidden" },
     content: { paddingBottom: s(40) },
+
+    /* On tablets / wide screens the content stays a readable column in the middle instead of stretching. */
+    page: { width: "100%", maxWidth: 560, alignSelf: "center" },
 
     /* HERO */
     hero: {
@@ -279,11 +283,14 @@ const styles = StyleSheet.create({
         lineHeight: s(21),
         color: BROWN,
     },
-    heroImage: { width: s(150), height: s(170) },
+    heroImage: { width: "38%", aspectRatio: 150 / 170 },
 
     /* STORY */
     storyBand: {
         backgroundColor: CREAM,
+        width: "100%",
+    },
+    storyInner: {
         paddingHorizontal: SIDE,
         paddingTop: s(18),
         paddingBottom: s(8),
@@ -293,7 +300,7 @@ const styles = StyleSheet.create({
         fontFamily: "Fredoka_600SemiBold",
         fontSize: s(21),
         lineHeight: s(25),
-        fontWeight:900,
+        fontWeight: 900,
         color: BROWN,
     },
     storySub: {
@@ -310,7 +317,7 @@ const styles = StyleSheet.create({
         transform: [{ rotate: "12deg" }],
     },
 
-    /* CARD */
+    /* CARD: text takes ~56%, picture ~44% of the card width, so it fits every screen size */
     card: {
         flexDirection: "row",
         minHeight: s(150),
@@ -326,13 +333,13 @@ const styles = StyleSheet.create({
         right: s(4),
         top: 0,
         bottom: 0,
-        width: CARD_IMG,
+        width: "42%",
         height: "100%",
         zIndex: 1,
     },
     cardPaw: {
         position: "absolute",
-        right: s(95),
+        right: "44%",
         top: s(14),
         width: s(56),
         height: s(56),
@@ -359,7 +366,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontFamily: "Fredoka_600SemiBold",
         fontSize: s(19),
-        fontWeight:900,
+        fontWeight: 900,
         lineHeight: s(22),
     },
     cardText: {
@@ -381,7 +388,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontFamily: "Fredoka_600SemiBold",
         fontSize: s(22),
-        fontWeight:900,
+        fontWeight: 900,
         lineHeight: s(27),
         color: BROWN,
     },

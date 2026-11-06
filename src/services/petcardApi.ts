@@ -205,7 +205,7 @@ knowMenu: (petId: string, menuKey: string) => api<{ menu: KnowMenuData }>(`${pet
   /* Backend: PATCH /api/pets/:petId/guardians/:userId { permissions } (owner only) */
   updateGuardianPermissions: (petId: string, userId: string, permissions: string[]) => api<{ message: string }>(`${petPath(petId)}/guardians/${encodeURIComponent(userId)}`, { method: "PATCH", body: { permissions } }),
   removeGuardian: (petId: string, userId: string) => api<{ message: string }>(`${petPath(petId)}/guardians/${encodeURIComponent(userId)}`, { method: "DELETE" }),
-  lookupPublicPetQr: (token: string) => api<{ pet: { name: string; type: string; breed?: string; gender?: string; birthDate?: string | null; weightKg?: number | null; avatarKey?: string | null; photoUrl?: string | null; emergency?: Record<string, unknown> } }>(`/api/public/pets/qr/${encodeURIComponent(token)}`, { auth: false }),
+  lookupPublicPetQr: (token: string) => api<{ pet: { name: string; type: string; breed?: string; gender?: string; birthDate?: string | null; weightKg?: number | null; avatarKey?: string | null; photoUrl?: string | null; emergency?: Record<string, unknown> } }>(`/api/public/pets/qr/${encodeURIComponent(token)}`),
   requestGuardianByPetQr: (token: string) => api<{ requestId: string; status: string; created: boolean }>("/api/guardian-requests/by-pet-qr", { method: "POST", body: { token } }),
   lookupGuardianInvite: (token: string) => api<Record<string, unknown>>("/api/guardian-invites/lookup", { method: "POST", body: { token } }),
   redeemGuardianInvite: (token: string) => api<Record<string, unknown>>("/api/guardian-invites/redeem", { method: "POST", body: { token } }),
@@ -219,6 +219,7 @@ knowMenu: (petId: string, menuKey: string) => api<{ menu: KnowMenuData }>(`${pet
   unregisterDevice: (token: string) => api<{ success: boolean }>("/api/me/devices/unregister", { method: "POST", body: { token } }),
 
   /* Backend (Gemini, key stays on server): POST /api/pets/:petId/assistant/chat { message, history } -> { reply }. Answers only about this pet's PetCard/care. */
+  prewarmBreed: (type: string, breed: string) => api<{ accepted: boolean }>("/api/me/breed-prewarm", { method: "POST", body: { type, breed } }),
   knowAdapt: (body: { pageKey: string; petType: string; breed: string; sections: unknown[] }) => api<{ sections: any[] | null }>("/api/me/know-adapt", { method: "POST", body }),
   aiChat: (petId: string, message: string, history: Array<{ role: "user" | "assistant"; text: string }>) => api<{ reply: string }>(`${petPath(petId)}/assistant/chat`, { method: "POST", body: { message, history } }),
 

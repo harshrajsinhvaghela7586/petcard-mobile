@@ -24,6 +24,7 @@ import BottomNav, { useNavHeight } from "./BottomNav";
 import { petcardApi, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import { getPetAvatarSource } from "@/services/petAvatar";
+import { stickerImage } from "@/services/stickerImage";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -166,7 +167,8 @@ export function HeroPet({ size = 150, style }: { size?: number; style?: StylePro
     const pet = useKnowPet();
     return (
         <Image
-            source={pet?.photoUrl ? { uri: pet.photoUrl } : getPetAvatarSource(pet?.type, pet?.avatarKey)}
+            /* the sticker the user selected for this pet comes first, then photo, then avatar */
+            source={stickerImage(pet?.activeStickerKey) ?? (pet?.photoUrl ? { uri: pet.photoUrl } : getPetAvatarSource(pet?.type, pet?.avatarKey, pet?.avatarLocalId))}
             resizeMode="contain"
             style={[{ position: "absolute", width: s(size), height: s(size) }, style]}
         />

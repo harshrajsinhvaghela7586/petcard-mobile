@@ -39,6 +39,34 @@ export const TYPE_PROFILES: Record<string, TypeProfile> = {
     },
 };
 
+/*
+ * Breeds the app has full, breed-specific Know guides for (same list and spelling rules as the backend's
+ * config/breeds.js). Anything else typed under "Other" is kept as the pet's breed but is NOT shown in the
+ * Know section: it just says "Your dog" / "Your cat" / "Your rabbit" (see knowPersonalize.ts).
+ * `match` points at the entry in BREED_TRAITS below.
+ */
+const SUPPORTED_BREEDS: { type: string; match: string; names: string[] }[] = [
+    { type: "dog", match: "hungarian vizsla", names: ["hungarian vizsla", "vizsla", "magyar vizsla"] },
+    { type: "dog", match: "border collie", names: ["border collie", "bordercollie"] },
+    { type: "dog", match: "japanese akita", names: ["japanese akita", "akita", "akita inu", "japanese akita inu"] },
+    { type: "cat", match: "persian", names: ["persian", "persian cat", "persian cats"] },
+    { type: "cat", match: "himalayan", names: ["himalayan", "himalayan cat", "himalayan cats", "himmie"] },
+    { type: "rabbit", match: "holland lop", names: ["holland lop", "hollandlop", "holland lop rabbit", "holland lops"] },
+    { type: "rabbit", match: "newzealand bunny", names: ["newzealand bunny", "new zealand bunny", "new zealand", "new zealand rabbit", "newzealand", "newzealand rabbit", "nz bunny", "nz white"] },
+];
+
+const norm = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Returns the BREED_TRAITS `match` key when the typed breed is one of the 7 supported breeds of this pet type, else null. */
+export function supportedBreedMatch(type: string, breed: string): string | null {
+    const q = norm(breed);
+    if (q.length < 3) return null;
+    const hit = SUPPORTED_BREEDS.find((b) =>
+        b.type === type && b.names.some((n) => norm(n) === q || ` ${q} `.includes(` ${norm(n)} `))
+    );
+    return hit ? hit.match : null;
+}
+
 /* Common breeds: energy / grooming / note. Match is case-insensitive "contains". */
 export const BREED_TRAITS: { match: string; energy: string; grooming: string; note: string }[] = [
     { match: "hungarian vizsla", energy: "Very high", grooming: "Weekly brush", note: "A people-focused, high-energy working dog; provide daily exercise, training and warm rest in cold weather." },

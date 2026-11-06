@@ -132,6 +132,34 @@ const CATEGORIES = [
     },
 ] as const;
 
+/* "Featured for You" card: text, icon and the question sent to PawChat AI change with the pet type. */
+const FEATURED = {
+    dog: {
+        tag: "Care Tip",
+        title: "How to Keep Your Dog Hydrated in Summer",
+        sub: "Simple tips to keep your dog cool, healthy & hydrated.",
+        icon: "white-balance-sunny",
+        color: "#FFB300",
+        ask: (name?: string) => `How can I keep my dog${name ? ` ${name}` : ""} hydrated and cool in summer? Please share simple tips.`,
+    },
+    cat: {
+        tag: "Care Tip",
+        title: "How to Get Your Cat to Drink More Water",
+        sub: "Easy ways to keep your cat hydrated and healthy every day.",
+        icon: "water",
+        color: "#3B8FD6",
+        ask: (name?: string) => `How can I get my cat${name ? ` ${name}` : ""} to drink more water and stay hydrated? Please share simple tips.`,
+    },
+    rabbit: {
+        tag: "Care Tip",
+        title: "How to Keep Your Rabbit Cool in Summer",
+        sub: "Rabbits overheat easily. Simple ways to keep them safe.",
+        icon: "thermometer",
+        color: "#E0502F",
+        ask: (name?: string) => `How can I keep my rabbit${name ? ` ${name}` : ""} cool and hydrated in summer? Please share simple tips.`,
+    },
+} as const;
+
 export default function KnowScreen() {
     const insets = useSafeAreaInsets();
     const NAV_HEIGHT = useNavHeight();
@@ -158,6 +186,12 @@ export default function KnowScreen() {
     if (!fontsLoaded) return null;
 
     const open = (route: string) => router.push(route as any);
+
+    /* Featured card: content for this pet type; tapping it asks PawChat AI the matching question. */
+    const petKind: "dog" | "cat" | "rabbit" = activePet?.type === "cat" || activePet?.type === "rabbit" ? activePet.type : "dog";
+    const featured = FEATURED[petKind];
+    const askFeatured = () =>
+        router.push({ pathname: "/AIChatScreen", params: { ask: featured.ask(activePet?.name) } } as any);
 
     return (
         <SwipeTabs active="know">
@@ -279,7 +313,7 @@ export default function KnowScreen() {
                         
                     </View>
 
-                    <Pressable style={[styles.card, styles.featuredCard]}>
+                    <Pressable style={[styles.card, styles.featuredCard]} onPress={askFeatured}>
                         <Image
                             source={petImageSource(activePet)}
                             resizeMode="contain"
@@ -287,13 +321,13 @@ export default function KnowScreen() {
                         />
                         <View style={styles.featuredInfo}>
                             <View style={styles.careTag}>
-                                <Text style={styles.careTagText} maxFontSizeMultiplier={1}>Care Tip</Text>
+                                <Text style={styles.careTagText} maxFontSizeMultiplier={1}>{featured.tag}</Text>
                             </View>
                             <Text style={styles.featuredTitle} maxFontSizeMultiplier={1.1} numberOfLines={2}>
-                                How to Keep Your {activePet?.type === "cat" ? "Cat" : activePet?.type === "rabbit" ? "Rabbit" : "Dog"} Hydrated in Summer
+                                {featured.title}
                             </Text>
                             <Text style={styles.featuredSub} maxFontSizeMultiplier={1.1} numberOfLines={2}>
-                                Simple tips to keep your {activePet?.type ?? "pet"} cool, healthy & hydrated.
+                                {featured.sub}
                             </Text>
                             <View style={styles.readBtn}>
                                 <LinearGradient colors={["#ff7a00", "#ff9b2f", "#ff8400", "#ffb347"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.readBtnGradient}>
@@ -302,16 +336,16 @@ export default function KnowScreen() {
                             </View>
                         </View>
                         <MaterialCommunityIcons
-                            name="white-balance-sunny"
+                            name={featured.icon as any}
                             size={s(28)}
-                            color="#FFB300"
+                            color={featured.color}
                             style={styles.sunIcon}
                         />
                     </Pressable>
                 </View>
 
                 {/* ASK AI BANNER */}
-                <View style={styles.askBanner}>
+                 <View style={styles.askBanner}>
                     <MaterialCommunityIcons name="robot-happy-outline" size={s(34)} color={C.purple} />
                     <View style={{ flex: 1, marginLeft: s(8) }}>
                         <Text style={styles.askTitle} maxFontSizeMultiplier={1.1} numberOfLines={1}>
@@ -321,12 +355,9 @@ export default function KnowScreen() {
                             Ask PawChat AI – your smart pet care buddy!
                         </Text>
                     </View>
-                    <PrimaryButton
-                        title="Ask Now ✦"
-                        onPress={() => open("/AIChatScreen")}
-                        style={styles.askBtn}
-                        textStyle={styles.askBtnText}
-                    />
+                    <Pressable style={styles.askBtn} onPress={() => open("/AIChatScreen")}>
+                        <Text style={styles.askBtnText} maxFontSizeMultiplier={1.1}>Ask Now ✦</Text>
+                    </Pressable>
                 </View>
             </ScrollView>
 
@@ -589,7 +620,7 @@ const styles = StyleSheet.create({
     sunIcon: { position: "absolute", top: s(8), right: s(10) },
 
     /* ask banner */
-    askBanner: {
+     askBanner: {
         marginHorizontal: SIDE,
         marginTop: s(12),
         padding: s(12),
@@ -603,8 +634,9 @@ const styles = StyleSheet.create({
     askTitle: { fontFamily: "Nunito_700Bold", fontSize: s(13), color: C.brown },
     askSub: { fontFamily: "Nunito_600SemiBold", fontSize: s(10), color: C.muted, marginTop: s(1) },
     askBtn: {
-        height: s(38),
+        backgroundColor: C.purple,
         paddingHorizontal: s(14),
+        paddingVertical: s(8),
         borderRadius: s(12),
         marginLeft: s(8),
     },
