@@ -11,12 +11,13 @@
       "icon": "./assets/images/app-icon.png"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF"
-      },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.harshrajsinh7419.petcardmobile"
-    },
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/images/app-icon.png",
+    "backgroundColor": "#FFFFFF"
+  },
+  "predictiveBackGestureEnabled": false,
+  "package": "com.harshrajsinh7419.petcardmobile"
+},
     "web": {
       "output": "static"
     },
