@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import ScreenHeader, { C, PawBackground, SIDE, s, useAppFonts } from "@/components/SectionHeader";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +8,6 @@ import { useFocusEffect } from "expo-router";
 import { petcardApi, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import {
-    Alert,
     Dimensions,
     Image,
     Pressable,
@@ -62,7 +62,7 @@ export default function TaskCalenderScreen() {
             const to = dateKey(year, month, new Date(year, month + 1, 0).getDate());
             const result = await petcardApi.calendar(id, from, to);
             setDaysData((result.days ?? {}) as any);
-        } catch (error) { Alert.alert("Calendar unavailable", error instanceof Error ? error.message : "Please try again."); }
+        } catch (error) { appAlert("Calendar unavailable", error instanceof Error ? error.message : "Please try again."); }
         finally { setLoading(false); }
     }, []);
 
@@ -74,7 +74,7 @@ export default function TaskCalenderScreen() {
                 const pet = await resolveSelectedPet(pets ?? []) as Pet | null;
                 if (!alive || !pet?.id) return;
                 setPetId(pet.id);
-            } catch (error) { if (alive) Alert.alert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); }
+            } catch (error) { if (alive) appAlert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); }
         })();
         return () => { alive = false; };
     }, []));

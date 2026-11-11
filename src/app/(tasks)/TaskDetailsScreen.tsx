@@ -1,3 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
+import { resolveSelectedPet } from "@/services/petSelection";
+import { canOnPet } from "@/services/petPermissions";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import ScreenHeader, {
     C,
@@ -7,7 +10,7 @@ import ScreenHeader, {
     s,
     useAppFonts,
 } from "@/components/SectionHeader";
-import { Alert, ActivityIndicator } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { petcardApi, Pet, Task } from "@/services/petcardApi";
 import React, { useEffect, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,6 +30,8 @@ export default function TaskDetailsScreen() {
     const { task } = useLocalSearchParams<{ task?: string }>();
     const [fontsLoaded] = useAppFonts();
     const [activePetId, setActivePetId] = useState<string | null>(null);
+    const [activePet, setActivePet] = useState<Pet | null>(null);
+    const canComplete = canOnPet(activePet, "manage_tasks");
     const [apiTask, setApiTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -36,14 +41,14 @@ export default function TaskDetailsScreen() {
         (async () => {
             try {
                 const bootstrap = await petcardApi.bootstrap();
-                const pet = bootstrap.pets?.[0] as Pet | undefined;
+                const pet = (await resolveSelectedPet(bootstrap.pets ?? [])) as Pet | null;
                 if (!pet?.id) throw new Error("No pet profile was found.");
                 const result = await petcardApi.listAllTasks(pet.id);
                 const found = (result.tasks ?? []).find((item) => item.id === task);
                 if (!found) throw new Error("This task could not be found.");
-                if (alive) { setActivePetId(pet.id); setApiTask(found); }
+                if (alive) { setActivePetId(pet.id); setActivePet(pet); setApiTask(found); }
             } catch (error) {
-                if (alive) Alert.alert("Couldn't load task", error instanceof Error ? error.message : "Please try again.");
+                if (alive) appAlert("Couldn't load task", error instanceof Error ? error.message : "Please try again.");
             } finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };
@@ -55,10 +60,9 @@ export default function TaskDetailsScreen() {
         title: apiTask.title,
         description: apiTask.note || "Complete this care task for your pet.",
         date: apiTask.recurrence?.startDate || "—",
-        time: apiTask.timeOfDay || "Not set",
-        repeat: apiTask.recurrence?.type || "once",
-        reminder: "Use your configured reminder settings",
-        xp: apiTask.xp ?? 0,
+        time: apiTask.timeLabel || apiTask.timeOfDay || "Not set",
+        repeat: apiTask.repeatLabel || apiTask.recurrence?.type || "Once",
+        reminder: apiTask.reminderLabel || "No reminder",
     } : null;
 
     const rows = t ? [
@@ -66,17 +70,20 @@ export default function TaskDetailsScreen() {
         { key: "time", label: "Time", value: t.time, icon: "clock-outline" },
         { key: "repeat", label: "Repeat", value: t.repeat, icon: "repeat" },
         { key: "reminder", label: "Reminder", value: t.reminder, icon: "bell-outline" },
-        { key: "reward", label: "Reward", value: `${t.xp} XP`, icon: "star" },
     ] : [];
 
+    const goTasks = () => router.replace("/TasksScreen" as any);
+    const openEdit = (mode?: "reschedule") =>
+        router.push({ pathname: "/EditTaskScreen", params: { task: apiTask?.id, ...(mode ? { mode } : {}) } } as any);
+
     const complete = async () => {
-        if (!apiTask || !activePetId || saving) return;
+        if (!apiTask || !activePetId || saving || !canComplete) return;
         setSaving(true);
         try {
             await petcardApi.completeTask(activePetId, apiTask.id);
             router.replace({ pathname: "/TaskCompleteScreen", params: { task: apiTask.id } } as any);
         } catch (error) {
-            Alert.alert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
         } finally { setSaving(false); }
     };
 
@@ -116,7 +123,7 @@ export default function TaskDetailsScreen() {
                             <MaterialCommunityIcons
                                 name={r.icon as any}
                                 size={s(22)}
-                                color={r.key === "reward" ? "#F5B400" : C.iconMuted}
+                                color={C.iconMuted}
                             />
                             <Text style={styles.infoLabel} maxFontSizeMultiplier={1.1}>{r.label}</Text>
                             <Text style={styles.infoValue} maxFontSizeMultiplier={1.1} numberOfLines={1}>
@@ -127,7 +134,7 @@ export default function TaskDetailsScreen() {
                 </View>
 
                 {/* ACTIONS */}
-                <View style={styles.buttonWrapper}>
+                {canComplete ? <View style={styles.buttonWrapper}>
                     <PrimaryButton
                         title={saving ? "Saving..." : "Mark as Complete"}
                         onPress={complete}
@@ -139,11 +146,24 @@ export default function TaskDetailsScreen() {
                             />
                         }
                     />
-                </View>
+                </View> : null}
 
-                <Pressable style={styles.skip} onPress={() => router.back()} hitSlop={10}>
-                    <Text style={styles.skipText} maxFontSizeMultiplier={1.1}>Skip / Reschedule</Text>
-                </Pressable>
+                <View style={styles.secondaryRow}>
+                    <Pressable style={styles.secondaryBtn} onPress={goTasks} hitSlop={8}>
+                        <MaterialCommunityIcons name="skip-next-outline" size={s(18)} color={C.orange} />
+                        <Text style={styles.skipText} maxFontSizeMultiplier={1.1}>Skip</Text>
+                    </Pressable>
+                    {canComplete ? <>
+                    <Pressable style={styles.secondaryBtn} onPress={() => openEdit("reschedule")} hitSlop={8}>
+                        <MaterialCommunityIcons name="calendar-clock-outline" size={s(18)} color={C.orange} />
+                        <Text style={styles.skipText} maxFontSizeMultiplier={1.1}>Reschedule</Text>
+                    </Pressable>
+                    <Pressable style={styles.secondaryBtn} onPress={() => openEdit()} hitSlop={8}>
+                        <MaterialCommunityIcons name="pencil-outline" size={s(18)} color={C.orange} />
+                        <Text style={styles.skipText} maxFontSizeMultiplier={1.1}>Edit</Text>
+                    </Pressable>
+                    </> : null}
+                </View>
                 </> : null}
             </ScrollView>
 
@@ -207,6 +227,11 @@ const styles = StyleSheet.create({
         marginLeft: s(20),
         zIndex: 10,
     },
-    skip: { alignItems: "center", marginTop: s(16) },
+    secondaryRow: { flexDirection: "row", justifyContent: "center", gap: s(10), marginTop: s(18), paddingHorizontal: SIDE },
+    secondaryBtn: {
+        flexDirection: "row", alignItems: "center", gap: s(4),
+        paddingHorizontal: s(12), paddingVertical: s(8), borderRadius: s(16),
+        backgroundColor: C.white, borderWidth: 1, borderColor: C.peachBorder,
+    },
     skipText: { fontFamily: "Nunito_700Bold", fontSize: s(14), color: C.orange },
 });

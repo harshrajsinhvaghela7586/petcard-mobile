@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import ScreenHeader, {
     C,
@@ -13,10 +14,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image } from "react-native";
+import { accessLabel } from "@/services/petPermissions";
 import { petcardApi, Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import {
-    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -25,14 +26,17 @@ import {
 import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import BottomNav, { useNavHeight } from "../../components/BottomNav";
 
-type Access = "Full Access" | "View Only";
+type Access = "Full Access" | "Custom Access" | "View Only" | "Basic Access";
 
 type Pending = { id: string; name: string; requested: string; photoUrl?: string | null };
 type Approved = { id: string; photoUrl?: string | null; name: string; phone: string; access: Access; permissions: string[] };
+type Me = { id: string; name: string; photoUrl?: string | null };
 
 const ACCESS_STYLE: Record<Access, { bg: string; fg: string }> = {
     "Full Access": { bg: "#E4F3D6", fg: "#5E9B2D" },
+    "Custom Access": { bg: "#FFF0D6", fg: "#E08A00" },
     "View Only": { bg: "#E6F0FA", fg: "#3B6FB6" },
+    "Basic Access": { bg: "#F0E4DD", fg: "#8F7365" },
 };
 
 
@@ -69,6 +73,8 @@ export default function GuardiansScreen() {
     const [ownerName, setOwnerName] = useState("");
     const [editing, setEditing] = useState<Approved | null>(null);
     const [savingPerm, setSavingPerm] = useState(false);
+    // Logged-in user's own co-guardian entry (null when owner)
+    const [me, setMe] = useState<Me | null>(null);
 
     const loadGuardians = async () => {
         setLoading(true);
@@ -79,6 +85,7 @@ export default function GuardiansScreen() {
                 setPending([]);
                 setApproved([]);
                 setPetId("");
+                setMe(null);
                 return;
             }
             setPetId(pet.id);
@@ -86,6 +93,14 @@ export default function GuardiansScreen() {
             setIsOwner(pet.role === "owner");
             const data = await petcardApi.listGuardians(pet.id) as any;
             setOwnerName(typeof data.ownerName === "string" ? data.ownerName : "");
+
+            const mine = (data.members ?? []).find((m: any) => m.isYou && m.role !== "owner");
+            setMe(
+                mine
+                    ? { id: mine.userId, name: mine.name ?? user?.name ?? "You", photoUrl: mine.photoUrl ?? null }
+                    : null
+            );
+
             setPending((data.pendingRequests ?? []).map((r: any) => ({
                 id: r.id,
                 name: r.requester?.name ?? "Guardian",
@@ -98,10 +113,10 @@ export default function GuardiansScreen() {
                 name: m.name ?? "Guardian",
                 phone: "Contact details private",
                 permissions: Array.isArray(m.permissions) ? m.permissions : [],
-                access: (Array.isArray(m.permissions) && m.permissions.some((p: string) => p.startsWith("manage_")) ? "Full Access" : "View Only") as Access,
+                access: accessLabel(Array.isArray(m.permissions) ? m.permissions : []) as Access,
             })));
         } catch (error) {
-            Alert.alert("Couldn't load guardians", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't load guardians", error instanceof Error ? error.message : "Please try again.");
         } finally {
             setLoading(false);
         }
@@ -112,28 +127,28 @@ export default function GuardiansScreen() {
 
     const review = (p: Pending) => {
         if (!petId) return;
-        Alert.alert(p.name, "Allow this person to help care for " + petName + "?", [
+        appAlert(p.name, "Allow this person to help care for " + petName + "?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Decline",
                 style: "destructive",
                 onPress: async () => {
                     try { await petcardApi.rejectGuardianRequest(petId, p.id); await loadGuardians(); }
-                    catch (error) { Alert.alert("Request failed", error instanceof Error ? error.message : "Please try again."); }
+                    catch (error) { appAlert("Request failed", error instanceof Error ? error.message : "Please try again."); }
                 },
             },
             {
                 text: "Approve",
                 onPress: async () => {
                     try { await petcardApi.approveGuardianRequest(petId, p.id); await loadGuardians(); }
-                    catch (error) { Alert.alert("Approval failed", error instanceof Error ? error.message : "Please try again."); }
+                    catch (error) { appAlert("Approval failed", error instanceof Error ? error.message : "Please try again."); }
                 },
             },
         ]);
     };
 
     const toggleAccess = (g: Approved) => {
-        if (!isOwner) { Alert.alert("Owner only", "Only the primary guardian can change permissions."); return; }
+        if (!isOwner) { appAlert("Owner only", "Only the primary guardian can change permissions."); return; }
         setEditing(g);
     };
 
@@ -145,20 +160,39 @@ export default function GuardiansScreen() {
             setEditing(null);
             await loadGuardians();
         } catch (error) {
-            Alert.alert("Couldn't update permissions", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't update permissions", error instanceof Error ? error.message : "Please try again.");
         } finally { setSavingPerm(false); }
     };
 
     const removeGuardian = () => {
         if (!editing || !petId) return;
         const g = editing;
-        Alert.alert("Remove co-guardian?", `${g.name} will no longer have access to ${petName}.`, [
+        appAlert("Remove co-guardian?", `${g.name} will no longer have access to ${petName}.`, [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Remove", style: "destructive",
                 onPress: async () => {
                     try { await petcardApi.removeGuardian(petId, g.id); setEditing(null); await loadGuardians(); }
-                    catch (error) { Alert.alert("Couldn't remove guardian", error instanceof Error ? error.message : "Please try again."); }
+                    catch (error) { appAlert("Couldn't remove guardian", error instanceof Error ? error.message : "Please try again."); }
+                },
+            },
+        ]);
+    };
+
+    // Co-guardian removes themselves
+    const leavePet = () => {
+        if (!me || !petId) return;
+        appAlert("Remove yourself?", `You will no longer have access to ${petName}.`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Remove me", style: "destructive",
+                onPress: async () => {
+                    try {
+                        await petcardApi.leavePet(petId); // co-guardians use the leave route; removeGuardian is owner-only
+                        router.back();
+                    } catch (error) {
+                        appAlert("Couldn't remove you", error instanceof Error ? error.message : "Please try again.");
+                    }
                 },
             },
         ]);
@@ -169,8 +203,8 @@ export default function GuardiansScreen() {
             <PawBackground />
             <ScreenHeader
                 title="Guardians"
-                rightLabel="+ Add"
-                onRightPress={() => router.push("/MyQRCodeScreen" as any)}
+                rightLabel={isOwner ? "+ Add" : undefined}
+                onRightPress={isOwner ? () => router.push("/MyQRCodeScreen" as any) : undefined}
             />
 
             <ScrollView
@@ -204,11 +238,34 @@ export default function GuardiansScreen() {
                     </View>
                 </View>
 
+                {/* YOUR CO-GUARDIAN CARD (only for co-guardians) */}
+                {!isOwner && me ? (
+                    <>
+                        <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.1}>You</Text>
+                        <View style={styles.listCard}>
+                            <View style={styles.row}>
+                                <Avatar uri={me.photoUrl} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.rowName} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                        {me.name}
+                                    </Text>
+                                    <Text style={styles.rowSub} maxFontSizeMultiplier={1.1} numberOfLines={1}>
+                                        Co-guardian
+                                    </Text>
+                                </View>
+                                <Pressable style={styles.leaveBtn} onPress={leavePet}>
+                                    <Text style={styles.leaveText} maxFontSizeMultiplier={1.1}>Remove me</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </>
+                ) : null}
+
                 {/* CO-GUARDIANS */}
                 <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.1}>Co-Guardians</Text>
 
                 {loading ? <Text style={styles.empty}>Loading guardians…</Text> : null}
-                {!loading && pending.length > 0 ? (
+                {!loading && isOwner && pending.length > 0 ? (
                     <>
                         <Text style={styles.subLabel} maxFontSizeMultiplier={1.1}>Pending Approval</Text>
                         <View style={styles.listCard}>
@@ -346,6 +403,16 @@ const styles = StyleSheet.create({
         backgroundColor: C.white,
     },
     reviewText: { fontFamily: "Nunito_700Bold", fontSize: s(12), color: C.orange },
+
+    leaveBtn: {
+        paddingHorizontal: s(14),
+        paddingVertical: s(6),
+        borderRadius: s(12),
+        borderWidth: 1,
+        borderColor: "#D9534F",
+        backgroundColor: C.white,
+    },
+    leaveText: { fontFamily: "Nunito_700Bold", fontSize: s(12), color: "#D9534F" },
 
     accessPill: { paddingHorizontal: s(12), paddingVertical: s(5), borderRadius: s(10) },
     accessText: { fontFamily: "Nunito_700Bold", fontSize: s(11) },

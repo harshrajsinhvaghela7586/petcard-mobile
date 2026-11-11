@@ -24,6 +24,7 @@ import {
 } from "react-native-safe-area-context";
 
 import CustomSplashScreen from "./SplashScreen";
+import { DialogHost } from "../components/AppDialog";
 import OnboardingScreen from "./OnboardingScreen";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { LanguageProvider, useLang } from "../i18n/LanguageContext";
@@ -51,6 +52,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             >
                 {children}
             </View>
+            <DialogHost />
         </GestureHandlerRootView>
     );
 }

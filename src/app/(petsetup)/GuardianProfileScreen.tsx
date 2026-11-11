@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Dimensions,
@@ -10,8 +11,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-    View,
-    Alert
+    View
 } from "react-native";
 import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
 
@@ -158,7 +158,7 @@ export default function GuardianProfileScreen() {
             const { user } = await petcardApi.updateProfile({ photo });
             setProfilePhoto(user.photoUrl ?? null);
         } catch (error) {
-            Alert.alert("Couldn't save photo", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't save photo", error instanceof Error ? error.message : "Please try again.");
         } finally { setPhotoBusy(false); }
     };
 
@@ -169,19 +169,19 @@ export default function GuardianProfileScreen() {
             await petcardApi.updateProfile({ photo: null });
             setProfilePhoto(null);
         } catch (error) {
-            Alert.alert("Couldn't remove photo", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't remove photo", error instanceof Error ? error.message : "Please try again.");
         } finally { setPhotoBusy(false); }
     };
 
     const handleContinue = async () => {
         if (saving) return;
         if (!relationship) {
-            Alert.alert("Relationship required", "Please select your relationship to the pet.");
+            appAlert("Relationship required", "Please select your relationship to the pet.");
             return;
         }
         const phoneProblem = phoneError(country, phone);
         if (phoneProblem) {
-            Alert.alert("Invalid phone", phoneProblem);
+            appAlert("Invalid phone", phoneProblem);
             return;
         }
         setSaving(true);
@@ -212,7 +212,7 @@ export default function GuardianProfileScreen() {
           // Show the exact reason from the server (for example "Enter a valid India mobile number.").
           const fields = (error as any)?.data?.fields as Record<string, string> | undefined;
           const reason = fields ? Object.values(fields).filter(Boolean).join("\n") : "";
-          Alert.alert("Couldn't save guardian profile", reason || (error instanceof Error ? error.message : "Please try again."));
+          appAlert("Couldn't save guardian profile", reason || (error instanceof Error ? error.message : "Please try again."));
         } finally { setSaving(false); }
     };
 

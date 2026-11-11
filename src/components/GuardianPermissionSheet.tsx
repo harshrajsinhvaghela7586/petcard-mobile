@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
+    Dimensions,
     Modal,
     Pressable,
+    ScrollView,
     StyleSheet,
     Switch,
     View
@@ -12,7 +14,10 @@ import { C, s } from "@/components/SectionHeader";
 
 /* Backend ke GUARDIAN_PERMISSIONS ke saath same keys */
 export const PERMISSION_OPTIONS: { key: string; label: string; sub: string }[] = [
-    { key: "view_pet", label: "View pet profile", sub: "See pet details and the PetCard" },
+    { key: "view_pet", label: "View pet profile", sub: "See pet details and progress" },
+    { key: "view_card", label: "Digital PetCard", sub: "See the pet's digital ID card" },
+    { key: "view_qr", label: "QR code", sub: "See and share the pet's QR code" },
+    { key: "view_emergency", label: "Emergency card", sub: "Medical info and the owner's contact" },
     { key: "view_tasks", label: "View tasks", sub: "See daily tasks and the calendar" },
     { key: "manage_tasks", label: "Manage tasks", sub: "Add, edit and complete tasks" },
     { key: "view_health", label: "View health records", sub: "See vaccines, vet visits and more" },
@@ -49,6 +54,8 @@ export default function GuardianPermissionSheet({ visible, name, initial, saving
             <View style={styles.sheet}>
                 <View style={styles.grab} />
                 <Text style={styles.title} maxFontSizeMultiplier={1.1}>{name}'s permissions</Text>
+                {/* The list scrolls; the buttons below always stay on screen. */}
+                <ScrollView style={{ maxHeight: Dimensions.get("window").height * 0.5 }} showsVerticalScrollIndicator={false}>
                 {PERMISSION_OPTIONS.map((p, i) => (
                     <View key={p.key} style={[styles.row, i > 0 && styles.rowBorder]}>
                         <View style={{ flex: 1 }}>
@@ -64,11 +71,10 @@ export default function GuardianPermissionSheet({ visible, name, initial, saving
                         />
                     </View>
                 ))}
+                </ScrollView>
                 <PrimaryButton title={saving ? "Saving..." : "Save Permissions"} disabled={saving} onPress={() => onSave(Array.from(sel))} style={{ alignSelf: "stretch", marginTop: s(14) }} />
                 {onRemove ? (
-                    <Pressable onPress={onRemove} style={styles.remove} hitSlop={8}>
-                        <Text style={styles.removeText} maxFontSizeMultiplier={1.1}>Remove co-guardian</Text>
-                    </Pressable>
+                    <PrimaryButton compact variant="danger" title="Remove co-guardian" disabled={saving} onPress={onRemove} style={{ alignSelf: "stretch", marginTop: s(10) }} />
                 ) : null}
             </View>
         </Modal>

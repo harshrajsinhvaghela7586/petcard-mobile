@@ -18,22 +18,29 @@ import { router } from "expo-router";
 import { C, PawBackground, cardStyle, s } from "@/components/SectionHeader";
 import { getPetAvatarSource } from "@/services/petAvatar";
 import { useSelectedPet } from "@/hooks/use-selected-pet";
+import { canOnPet, isPetOwner, type PetPermission } from "@/services/petPermissions";
 import BottomNav, { useNavHeight } from "./BottomNav";
 
 /* Full screen: poori width ka panel left se slide hota hai */
 const { width: SCREEN_W } = Dimensions.get("window");
 
-/* route na ho to row abhi sirf dikhegi (page baad me) */
-const ITEMS = [
-    { key: "petcard", title: "Digital PetCard", sub: "View your pet's digital ID", icon: "card-account-details-outline", tint: "#FFF0D6", color: "#E08A00", route: "/DigitalPetCardScreen" },
-    { key: "qr", title: "QR Code", sub: "Share or view your QR code", icon: "qrcode", tint: "#EAF3DC", color: "#5E9B2D", route: "/MyQRCodeScreen" },
+/*
+ * Every row follows the person's role for the ACTIVE pet:
+ *  - ownerOnly: only the owner sees it
+ *  - needs: the owner always sees it; a co-guardian only when the owner switched that permission on
+ *  - neither: everyone sees it
+ */
+type HubItem = { key: string; title: string; sub: string; icon: string; tint: string; color: string; route: string; needs?: PetPermission; ownerOnly?: boolean };
+const ITEMS: HubItem[] = [
+    { key: "petcard", title: "Digital PetCard", sub: "View your pet's digital ID", icon: "card-account-details-outline", tint: "#FFF0D6", color: "#E08A00", route: "/DigitalPetCardScreen", needs: "view_card" },
+    { key: "qr", title: "QR Code", sub: "Share or view your QR code", icon: "qrcode", tint: "#EAF3DC", color: "#5E9B2D", route: "/MyQRCodeScreen", needs: "view_qr" },
     { key: "scan", title: "Scan QR", sub: "Scan to view another PetCard", icon: "qrcode-scan", tint: "#FFE5E1", color: "#FF4B32", route: "/ScanQRScreen" },
-    { key: "emergency", title: "Emergency Card", sub: "Important info in emergencies", icon: "heart-pulse", tint: "#FFE5E1", color: "#E5484D", route: "/EmergencyCardScreen" },
-    { key: "health", title: "Health Records", sub: "Vaccinations, meds & more", icon: "clipboard-pulse-outline", tint: "#F3EAFF", color: "#7A5CFF", route: "/HealthRecordScreen" },
+    { key: "emergency", title: "Emergency Card", sub: "Important info in emergencies", icon: "heart-pulse", tint: "#FFE5E1", color: "#E5484D", route: "/EmergencyCardScreen", needs: "view_emergency" },
+    { key: "health", title: "Health Records", sub: "Vaccinations, meds & more", icon: "clipboard-pulse-outline", tint: "#F3EAFF", color: "#7A5CFF", route: "/HealthRecordScreen", needs: "view_health" },
     { key: "guardians", title: "Guardians", sub: "Manage pet guardians", icon: "account-group", tint: "#EAF3DC", color: "#5E9B2D", route: "/GuardianScreen" },
-    { key: "guardianRequests", title: "Guardian Requests", sub: "Review access and permissions", icon: "account-check", tint: "#EAF3DC", color: "#5E9B2D", route: "/GuardianRequestsScreen" },
-    { key: "avatar", title: "Avatar", sub: "Customize your pet avatar", icon: "hanger", tint: "#E6F0FA", color: "#3B6FB6", route: "/AvatarFramesScreen" }, 
-    { key: "pets", title: "My Pets", sub: "Switch or add another pet", icon: "paw", tint: "#FFF0D6", color: "#FF7A00", route: "/PetTypeScreen" }, // TODO
+    { key: "guardianRequests", title: "Guardian Requests", sub: "Review access and permissions", icon: "account-check", tint: "#EAF3DC", color: "#5E9B2D", route: "/GuardianRequestsScreen", ownerOnly: true },
+    { key: "avatar", title: "Avatar", sub: "Customize your pet avatar", icon: "hanger", tint: "#E6F0FA", color: "#3B6FB6", route: "/AvatarFramesScreen", ownerOnly: true },
+    { key: "pets", title: "My Pets", sub: "Switch or add another pet", icon: "paw", tint: "#FFF0D6", color: "#FF7A00", route: "/ProfileScreen" },
 ];
 
 interface Props {
@@ -48,11 +55,12 @@ interface Props {
 }
 
 export default function PetHubDrawer({ visible, onClose, petName = "your pet", petType = "dog", avatarKey = "", photoUrl = null, unreadCount = 0, requestCount = 0 }: Props) {
-    const { pet: hubPet, pets: hubPets } = useSelectedPet();
+    const { pet: hubPet, pets: hubPets, reload: reloadHubPet } = useSelectedPet();
+    /* Re-read the active pet and the role every time the hub opens, so a switched pet or changed permissions show up at once. */
+    useEffect(() => { if (visible) void reloadHubPet(); }, [visible, reloadHubPet]);
     const guardianOnly = (hubPets?.length ?? 0) > 0 && hubPets.every((p) => p.role && p.role !== "owner");
-    const isOwnerHere = !hubPet?.role || hubPet.role === "owner";
-    /* co-guardians: no QR / avatar / requests for the owner's pet, and "My Pets" starts with scanning the owner's QR */
-    const items = ITEMS.filter((it) => isOwnerHere || !["qr", "guardianRequests", "avatar"].includes(it.key))
+    const items = ITEMS
+        .filter((it) => (it.ownerOnly ? isPetOwner(hubPet) : it.needs ? canOnPet(hubPet, it.needs) : true))
         .map((it) => (guardianOnly && it.key === "pets" ? { ...it, title: "Add Pet", sub: "Scan the owner's QR to join", route: "/ScanQRScreen" } : it));
     const insets = useSafeAreaInsets();
     const NAV_HEIGHT = useNavHeight();
@@ -165,9 +173,6 @@ export default function PetHubDrawer({ visible, onClose, petName = "your pet", p
                                 style={styles.avatar}
                             />
                         </View>
-                        <Pressable style={styles.pencil}>
-                            <Ionicons name="pencil" size={s(12)} color={C.white} />
-                        </Pressable>
                     </View>
 
                     {/* menu */}

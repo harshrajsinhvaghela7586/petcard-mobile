@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import React, { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi } from "@/services/petcardApi";
 import {
     Image,
@@ -111,7 +111,7 @@ export default function EditProfileScreen() {
             applyUser(user);
             setLoaded(true);
         }).catch((error) => {
-            if (alive) Alert.alert("Couldn't load profile", error instanceof Error ? error.message : "Please try again.");
+            if (alive) appAlert("Couldn't load profile", error instanceof Error ? error.message : "Please try again.");
         });
         return () => { alive = false; };
     }, []);
@@ -128,13 +128,13 @@ export default function EditProfileScreen() {
             const { user } = await petcardApi.updateProfile({ photo });
             setPhotoUrl(user.photoUrl ?? null);
         } catch (error) {
-            Alert.alert("Couldn't change photo", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't change photo", error instanceof Error ? error.message : "Please try again.");
         } finally { setPhotoBusy(false); }
     };
 
     const removePhoto = () => {
         if (!photoUrl || photoBusy) return;
-        Alert.alert("Remove photo?", "Your profile photo will be removed.", [
+        appAlert("Remove photo?", "Your profile photo will be removed.", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Remove", style: "destructive", onPress: async () => {
@@ -143,7 +143,7 @@ export default function EditProfileScreen() {
                         const { user } = await petcardApi.updateProfile({ photo: null });
                         setPhotoUrl(user.photoUrl ?? null);
                     } catch (error) {
-                        Alert.alert("Couldn't remove photo", error instanceof Error ? error.message : "Please try again.");
+                        appAlert("Couldn't remove photo", error instanceof Error ? error.message : "Please try again.");
                     } finally { setPhotoBusy(false); }
                 },
             },
@@ -153,11 +153,11 @@ export default function EditProfileScreen() {
     const onSave = async () => {
         if (saving || !loaded) return;
         Keyboard.dismiss();
-        if (name.trim().length < 2) { Alert.alert("Name required", "Enter your full name."); return; }
+        if (name.trim().length < 2) { appAlert("Name required", "Enter your full name."); return; }
         const phoneProblem = phoneError(country, phone);
-        if (phoneProblem) { Alert.alert("Invalid phone", phoneProblem); return; }
+        if (phoneProblem) { appAlert("Invalid phone", phoneProblem); return; }
         const cleanLocation = clean(location);
-        if (cleanLocation.length > 100) { Alert.alert("Location too long", "Use up to 100 characters."); return; }
+        if (cleanLocation.length > 100) { appAlert("Location too long", "Use up to 100 characters."); return; }
 
         /* Build the PATCH body from what actually changed. */
         const body: { name?: string; phone?: string; country?: string; location?: string; relationship?: string } = {};
@@ -168,7 +168,7 @@ export default function EditProfileScreen() {
         if (relationship && relationship !== original.current.relationship) body.relationship = relationship;
 
         if (!Object.keys(body).length) {
-            Alert.alert("Nothing to save", "You haven't changed any details.");
+            appAlert("Nothing to save", "You haven't changed any details.");
             return;
         }
 
@@ -181,14 +181,14 @@ export default function EditProfileScreen() {
                 (body.location !== undefined && clean(user.location || "") !== body.location) ||
                 (body.relationship !== undefined && (user.relationship || "") !== body.relationship)
             ) {
-                Alert.alert("Not saved on the server", "The server did not store location / relationship. Make sure the latest backend (meController + MobileUser schema) is deployed and restarted.");
+                appAlert("Not saved on the server", "The server did not store location / relationship. Make sure the latest backend (meController + MobileUser schema) is deployed and restarted.");
                 return;
             }
-            Alert.alert("Profile updated", "Your profile has been saved.", [{ text: "OK", onPress: () => router.back() }]);
+            appAlert("Profile updated", "Your profile has been saved.", [{ text: "OK", onPress: () => router.back() }]);
         } catch (error) {
             const fields = (error as any)?.data?.fields as Record<string, string> | undefined;
             const reason = fields ? Object.values(fields).filter(Boolean).join("\n") : "";
-            Alert.alert("Couldn't save profile", reason || (error instanceof Error ? error.message : "Please try again."));
+            appAlert("Couldn't save profile", reason || (error instanceof Error ? error.message : "Please try again."));
         } finally { setSaving(false); }
     };
 

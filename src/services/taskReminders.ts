@@ -99,3 +99,14 @@ export async function scheduleTaskReminders(
     await Notifications.scheduleNotificationAsync({ content, trigger: { type: T.DATE, date: at, channelId } });
     return true;
 }
+
+
+/** Silences every local reminder of a pet's tasks (used when the pet is removed). */
+export async function cancelRemindersForTasks(taskIds: string[]) {
+    if (!taskIds.length) return;
+    const keys = new Set(taskIds.map(idKey));
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+        all.filter((n) => keys.has(String(n.content.data?.key))).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
+    );
+}

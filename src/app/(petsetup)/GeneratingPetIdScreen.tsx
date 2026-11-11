@@ -13,10 +13,10 @@ import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import { Nunito_700Bold, useFonts } from "@expo-google-fonts/nunito";
 
 import PrimaryButton from "@/components/Button/PrimaryButton";
-import { Alert } from "react-native";
 import { petcardApi } from "@/services/petcardApi";
 import { readPetSetupDraft, updatePetSetupDraft } from "@/services/petSetupDraft";
 import { useImagesReady } from "@/hooks/use-images-ready";
+import { petImageSource } from "@/services/stickerImage";
 import ScreenLoader from "@/components/ScreenLoader";
 import { useLang } from "@/i18n/LanguageContext";
 
@@ -30,8 +30,7 @@ const s = (size: number) => size * UI_SCALE;
 
 const PAW_IMG = require("../../../assets/images/paw.png");
 const PAW_WHITE_IMG = require("../../../assets/images/paw-white.png");
-const PET_IMG = require("../../../assets/images/pets/huchiko.png");
-const SCREEN_IMAGES = [PAW_IMG, PAW_WHITE_IMG, PET_IMG];
+const SCREEN_IMAGES = [PAW_IMG, PAW_WHITE_IMG];
 
 const RING_SIZE = s(250);
 const IMAGE_SIZE = s(210);
@@ -46,6 +45,16 @@ export default function GeneratingPetIdScreen() {
     const [saving, setSaving] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [attempt, setAttempt] = useState(0);
+    /* The picture the person chose in setup (their first sticker, else the avatar). Nothing is drawn until it is known, so no default dog flashes. */
+    const [heroImg, setHeroImg] = useState<any>(null);
+    useEffect(() => {
+        let alive = true;
+        readPetSetupDraft().then((d) => {
+            if (!alive) return;
+            setHeroImg(petImageSource({ type: d.petType, activeStickerKey: d.stickerKeys?.find(Boolean) ?? null, avatarKey: d.avatarKey, avatarLocalId: d.avatarLocalId }));
+        }).catch(() => undefined);
+        return () => { alive = false; };
+    }, []);
 
     useEffect(() => {
         let alive = true;
@@ -176,11 +185,13 @@ export default function GeneratingPetIdScreen() {
                 >
                     {/* PET IMAGE IN RING */}
                     <View style={styles.ring}>
-                        <Image
-                            source={PET_IMG}
-                            resizeMode="contain"
-                            style={styles.petImage}
-                        />
+                        {heroImg ? (
+                            <Image
+                                source={heroImg}
+                                resizeMode="contain"
+                                style={styles.petImage}
+                            />
+                        ) : null}
                     </View>
 
                     {/* PROGRESS */}

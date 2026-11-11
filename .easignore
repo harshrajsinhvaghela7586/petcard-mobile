@@ -17,6 +17,10 @@ android/.gradle/
 android/build/
 android/app/build/
 
+# Local diagnostic archives and backups
+eas-archive/
+app.backup.json
+
 # iOS generated files
 ios/Pods/
 ios/build/

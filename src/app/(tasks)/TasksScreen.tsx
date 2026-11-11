@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import PetHubDrawer from "@/components/PetHubDrawer";
@@ -10,10 +11,10 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi, Pet, Task } from "@/services/petcardApi";
 import { petImageSource, stickerUri } from "@/services/stickerImage";
 import { resolveSelectedPet } from "@/services/petSelection";
+import { canOnPet } from "@/services/petPermissions";
 import {
     Dimensions,
     Image,
@@ -136,6 +137,7 @@ export default function TasksScreen() {
 
     /* Pet Hub drawer (left se slide) */
     const [hubOpen, setHubOpen] = useState(false);
+    const [editMode, setEditMode] = useState(false);
 
     /* kisi aur page pe jaate hi drawer band (wapas aane pe khula na mile) */
     useFocusEffect(
@@ -172,7 +174,7 @@ export default function TasksScreen() {
                     const history = await petcardApi.taskHistory(pet.id, undefined, 6);
                     if (alive) setHistoryPreview((history.items ?? []) as Array<{ id: string; title: string; category: string; date: string; xp: number }>);
                 } catch (error) {
-                    if (alive) Alert.alert("Couldn't load tasks", error instanceof Error ? error.message : "Please try again.");
+                    if (alive) appAlert("Couldn't load tasks", error instanceof Error ? error.message : "Please try again.");
                 } finally { if (alive) setLoadingTasks(false); }
             })();
             return () => { alive = false; };
@@ -202,6 +204,7 @@ export default function TasksScreen() {
     const toggleTask = async (key: string) => {
         const task = taskItems.find((item) => item.key === key);
         if (!task || task.done || !activePetId) return;
+        if (!canOnPet(activePet, "manage_tasks")) { appAlert("View only", "The pet owner has not allowed you to complete tasks for this pet."); return; }
         try {
             const result = await petcardApi.completeTask(activePetId, key);
             setTaskItems((prev) => prev.map((item) => item.key === key ? { ...item, done: true } : item));
@@ -209,7 +212,7 @@ export default function TasksScreen() {
             const fresh = await petcardApi.petProgress(activePetId);
             if (fresh.streak?.current != null) setCareStreak(fresh.streak.current);
         } catch (error) {
-            Alert.alert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
         }
     };
 
@@ -318,8 +321,8 @@ export default function TasksScreen() {
                 <View style={styles.listWrap}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.1}>Today's Tasks</Text>
-                        <Pressable>
-                            <Text style={styles.sectionActionText} maxFontSizeMultiplier={1.1}>Edit</Text>
+                        <Pressable onPress={() => setEditMode((v) => !v)} hitSlop={8}>
+                            <Text style={styles.sectionActionText} maxFontSizeMultiplier={1.1}>{editMode ? "Done" : "Edit"}</Text>
                         </Pressable>
                     </View>
 
@@ -345,7 +348,13 @@ export default function TasksScreen() {
                                     </Text>
                                 </View>
 
-                                <Pressable onPress={() => toggleTask(t.key)} hitSlop={10}>
+                                {editMode ? (
+                                    <Pressable onPress={() => openTask(t.key)} hitSlop={10}>
+                                        <View style={styles.editBtn}>
+                                            <MaterialCommunityIcons name="pencil-outline" size={s(14)} color={C.white} />
+                                        </View>
+                                    </Pressable>
+                                ) : <Pressable onPress={() => toggleTask(t.key)} hitSlop={10}>
                                     {done ? (
                                         <View style={styles.checkDone}>
                                             <Ionicons name="checkmark" size={s(14)} color={C.white} />
@@ -353,7 +362,7 @@ export default function TasksScreen() {
                                     ) : (
                                         <View style={styles.checkEmpty} />
                                     )}
-                                </Pressable>
+                                </Pressable>}
 
                                 <Image
                                     source={petImageSource(activePet ?? { type: activePetType, avatarKey: activeAvatarKey })}
@@ -367,7 +376,7 @@ export default function TasksScreen() {
                     {!loadingTasks && visibleTasks.length === 0 ? <Text style={{ color: C.muted, paddingVertical: s(12) }}>No tasks found for this filter.</Text> : null}
 
                     {/* CREATE NEW TASK */}
-                    <View style={styles.buttonWrapper}>
+                    {canOnPet(activePet, "manage_tasks") ? <View style={styles.buttonWrapper}>
                         <PrimaryButton
                             title="Create New Task"
                             onPress={() => open(ROUTES.createTask)}
@@ -379,7 +388,7 @@ export default function TasksScreen() {
                                 />
                             }
                         />
-                    </View>
+                    </View> : null}
                 </View>
 
                 {/* CALENDAR + STREAK */}
@@ -702,6 +711,7 @@ const styles = StyleSheet.create({
         borderColor: C.muted,
         backgroundColor: C.white,
     },
+    editBtn: { width: s(22), height: s(22), borderRadius: s(11), backgroundColor: C.orange, alignItems: "center", justifyContent: "center" },
     taskPet: { width: s(46), height: s(46), marginLeft: s(6) },
 
     /* PrimaryButton wrapper + paw: same as PetTypeScreen */

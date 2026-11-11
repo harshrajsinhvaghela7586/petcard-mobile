@@ -4,6 +4,8 @@ import { getPetQrValue, petcardApi, type Pet } from "@/services/petcardApi";
 import { downloadCard, printCard } from "@/services/cardExport";
 import PetActions from "@/components/PetActions";
 import { resolveSelectedPet } from "@/services/petSelection";
+import { useRequirePermission } from "@/hooks/use-require-permission";
+import { isPetOwner } from "@/services/petPermissions";
 import ScreenHeader, {
     C,
     PawBackground,
@@ -50,7 +52,8 @@ export default function MyQRCodeScreen() {
             .finally(() => { if (active) setInviteLoading(false); });
         return () => { active = false; };
     }, [tab, pet?.id, guardianInvite]);
-    if (!fontsLoaded) return null;
+    const allowed = useRequirePermission(pet, "view_qr");
+    if (!fontsLoaded || !allowed) return null;
     const petName = pet?.name ?? FALLBACK_PET.name;
     const petId = pet?.id ?? FALLBACK_PET.id;
     const isPet = tab === "pet";
@@ -70,7 +73,7 @@ export default function MyQRCodeScreen() {
             >
                 {/* TABS */}
                 <View style={styles.tabs}>
-                    {TABS.map((t) => {
+                    {TABS.filter((t) => t.key === "pet" || isPetOwner(pet)).map((t) => {
                         const on = t.key === tab;
                         return (
                             <Pressable

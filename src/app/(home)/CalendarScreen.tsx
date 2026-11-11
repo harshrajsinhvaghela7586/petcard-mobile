@@ -1,8 +1,8 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
     Image,
     Modal,
     Pressable,
@@ -63,7 +63,7 @@ export default function CalendarScreen() {
                 setPetId(id);
                 const { records } = await petcardApi.listHealthRecords(id, undefined, undefined, 50);
                 if (active) setEvents((records ?? []).map((r) => ({ ...r, ...eventStyle(r) })));
-            } catch { if (active) Alert.alert("Calendar unavailable", "Events could not be loaded. Please check your connection and retry."); }
+            } catch { if (active) appAlert("Calendar unavailable", "Events could not be loaded. Please check your connection and retry."); }
         })();
         return () => { active = false; };
     }, []);
@@ -82,9 +82,9 @@ export default function CalendarScreen() {
     const openAdd = () => { setEditing(null); setTitle(""); setDate(selected); setModalOpen(true); };
     const openEdit = (event: CalendarEvent) => { setEditing(event); setTitle(event.title); setDate(event.date); setModalOpen(true); };
     const saveEvent = async () => {
-        if (!petId) return Alert.alert("Pet not found", "Create a pet profile before adding calendar events.");
-        if (!title.trim()) return Alert.alert("Event name required", "Enter an event name such as Grooming, Vaccination, Walk or Medicine.");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parseDate(date).getTime())) return Alert.alert("Invalid date", "Use YYYY-MM-DD for the event date.");
+        if (!petId) return appAlert("Pet not found", "Create a pet profile before adding calendar events.");
+        if (!title.trim()) return appAlert("Event name required", "Enter an event name such as Grooming, Vaccination, Walk or Medicine.");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parseDate(date).getTime())) return appAlert("Invalid date", "Use YYYY-MM-DD for the event date.");
         setSaving(true);
         try {
             const payload = { type: typeForTitle(title), title: title.trim(), date };
@@ -96,15 +96,15 @@ export default function CalendarScreen() {
                 setEvents((old) => [...old, { ...record, ...eventStyle(record) }]);
             }
             setSelected(date); setView({ y: parseDate(date).getFullYear(), m: parseDate(date).getMonth() }); setModalOpen(false);
-        } catch (error) { Alert.alert("Could not save event", error instanceof Error ? error.message : "Please try again."); }
+        } catch (error) { appAlert("Could not save event", error instanceof Error ? error.message : "Please try again."); }
         finally { setSaving(false); }
     };
-    const deleteEvent = (event: CalendarEvent) => Alert.alert("Delete event?", `Remove ${event.title}?`, [
+    const deleteEvent = (event: CalendarEvent) => appAlert("Delete event?", `Remove ${event.title}?`, [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: async () => {
             if (!petId) return;
             try { await petcardApi.deleteHealthRecord(petId, event.id); setEvents((old) => old.filter((e) => e.id !== event.id)); }
-            catch (error) { Alert.alert("Could not delete", error instanceof Error ? error.message : "Please try again."); }
+            catch (error) { appAlert("Could not delete", error instanceof Error ? error.message : "Please try again."); }
         } },
     ]);
 

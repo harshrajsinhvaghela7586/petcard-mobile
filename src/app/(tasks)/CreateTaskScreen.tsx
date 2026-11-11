@@ -1,5 +1,5 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi } from "@/services/petcardApi";
 import {
     Dimensions,
@@ -23,6 +23,7 @@ import NoPetPopup from "@/components/NoPetPopup";
 import TimeWheelModal, { formatTime, to24h } from "@/components/TimeWheel";
 import { scheduleTaskReminders } from "@/services/taskReminders";
 import { useSelectedPet } from "@/hooks/use-selected-pet";
+import { useRequirePermission } from "@/hooks/use-require-permission";
 
 const { width, height } = Dimensions.get("window");
 
@@ -113,7 +114,8 @@ export default function CreateTaskScreen() {
     const [timeOpen, setTimeOpen] = useState(false);
     const [iosDateOpen, setIosDateOpen] = useState(false);
 
-    if (!fontsLoaded) return null;
+    const allowed = useRequirePermission(pet, "manage_tasks", !petLoading);
+    if (!fontsLoaded || !allowed) return null;
 
     const reminderMinutes = REMINDERS.find((r) => r.label === reminder)?.minutes ?? null;
     const showDays = repeat === "Every Week" || repeat === "Custom Days";
@@ -135,14 +137,14 @@ export default function CreateTaskScreen() {
     const save = async () => {
         if (saving) return;
         if (!pet?.id) {
-            Alert.alert("Pet profile required", "Please finish setting up your pet before creating a task.");
+            appAlert("Pet profile required", "Please finish setting up your pet before creating a task.");
             return;
         }
         const problem = !category ? "Please choose the task category"
             : !name.trim() ? "Please write the task name"
             : (repeat === "Custom Days" && days.length === 0) ? "Please select at least one day for the reminder"
             : null;
-        if (problem) { Alert.alert("Details missing", problem); return; }
+        if (problem) { appAlert("Details missing", problem); return; }
         if (!canSave) return;
         setSaving(true);
         try {
@@ -168,7 +170,7 @@ export default function CreateTaskScreen() {
             // XP is intentionally not sent: the backend owns all reward values.
             router.replace("/TasksScreen" as any);
         } catch (error) {
-            Alert.alert("Couldn't save task", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't save task", error instanceof Error ? error.message : "Please try again.");
         } finally {
             setSaving(false);
         }

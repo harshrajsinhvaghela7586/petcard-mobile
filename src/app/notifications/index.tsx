@@ -1,5 +1,5 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useState } from "react";
-import { Alert } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { petcardApi } from "@/services/petcardApi";
 import {
@@ -86,7 +86,7 @@ export default function NotificationsScreen() {
           });
           if (alive) setItems(mapped);
         } catch (error) {
-          if (alive) Alert.alert("Couldn't load notifications", error instanceof Error ? error.message : "Please try again.");
+          if (alive) appAlert("Couldn't load notifications", error instanceof Error ? error.message : "Please try again.");
         } finally { if (alive) setLoading(false); }
       })();
       return () => { alive = false; };
@@ -95,7 +95,7 @@ export default function NotificationsScreen() {
 
     const markAll = async () => {
       try { await petcardApi.markNotificationsRead("all"); setItems((prev) => prev.map((n) => ({ ...n, unread: false }))); }
-      catch (error) { Alert.alert("Couldn't update notifications", error instanceof Error ? error.message : "Please try again."); }
+      catch (error) { appAlert("Couldn't update notifications", error instanceof Error ? error.message : "Please try again."); }
     };
     /* Tap = read + uske type ke page pe jao (reward -> Rewards, achievement -> Achievements ...) */
     const openNotification = async (n: Notif) => {

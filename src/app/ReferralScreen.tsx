@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
     Image,
     Pressable,
     Share,
@@ -27,7 +27,7 @@ export default function ReferralScreen() {
   useEffect(() => {
     let active = true;
     petcardApi.getReferral().then((data) => { if (active) { setMyCode(data.code); setCanApply(data.canApplyCode); } })
-      .catch((error) => { if (active) Alert.alert("Referral unavailable", error instanceof Error ? error.message : "You can skip this step and continue."); })
+      .catch((error) => { if (active) appAlert("Referral unavailable", error instanceof Error ? error.message : "You can skip this step and continue."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -38,8 +38,8 @@ export default function ReferralScreen() {
     setApplying(true);
     try {
       const result = await petcardApi.applyReferral(code.trim().toUpperCase());
-      Alert.alert("Congratulations!", "Your referral has been applied successfully. Your friend will receive the reward after you complete your pet setup.", [{ text: "Continue", onPress: () => { void continueToSetup(); } }]);
-    } catch (error) { Alert.alert("Referral not applied", error instanceof Error ? error.message : "Please check the code and try again."); }
+      appAlert("Congratulations!", "Your referral has been applied successfully. Your friend will receive the reward after you complete your pet setup.", [{ text: "Continue", onPress: () => { void continueToSetup(); } }]);
+    } catch (error) { appAlert("Referral not applied", error instanceof Error ? error.message : "Please check the code and try again."); }
     finally { setApplying(false); }
   };
   const shareCode = () => Share.share({ message: `Join me on PetCard! Use my referral code ${myCode} when you sign up.` });

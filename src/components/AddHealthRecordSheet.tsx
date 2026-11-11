@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
     KeyboardAvoidingView,
@@ -6,8 +7,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-    View,
-    Alert
+    View
 } from "react-native";
 import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
 import PrimaryButton from "@/components/Button/PrimaryButton";
@@ -48,10 +48,10 @@ export default function AddHealthRecordSheet({ visible, tab, onClose, onSave, sa
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
 
     const submit = () => {
-        if (!date) { Alert.alert("Details missing", "Please select the date."); return; }
-        if (isWeight && !weightOk) { Alert.alert("Details missing", "Please enter a valid weight in kg (for example 12.5)."); return; }
-        if (!isWeight && !title.trim()) { Alert.alert("Details missing", `Please write the ${cfg.type === "vet_visit" ? "reason for the visit" : "name"} of the record.`); return; }
-        if (due && date && due.getTime() < date.getTime()) { Alert.alert("Check the dates", "The next due date cannot be before the record date."); return; }
+        if (!date) { appAlert("Details missing", "Please select the date."); return; }
+        if (isWeight && !weightOk) { appAlert("Details missing", "Please enter a valid weight in kg (for example 12.5)."); return; }
+        if (!isWeight && !title.trim()) { appAlert("Details missing", `Please write the ${cfg.type === "vet_visit" ? "reason for the visit" : "name"} of the record.`); return; }
+        if (due && date && due.getTime() < date.getTime()) { appAlert("Check the dates", "The next due date cannot be before the record date."); return; }
         const base = isWeight ? `${w} kg` : title.trim();
         const finalTitle = cfg.prefix && !new RegExp(cfg.prefix, "i").test(base) ? `${cfg.prefix}: ${base}` : base;
         onSave({

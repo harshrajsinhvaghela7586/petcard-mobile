@@ -1,5 +1,5 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert } from "react-native";
 import { ApiError } from "@/services/apiClient";
 import PhoneField from "@/components/PhoneField";
 import { Country, DEFAULT_COUNTRY, joinPhone, phoneError } from "@/constants/countries";
@@ -339,27 +339,35 @@ export default function SignupScreen() {
         [password, confirmPassword]
     );
 
+    const handleGoogleSignup = async () => {
+        if (!acceptedTerms) {
+            appAlert("Terms required", "Please accept the terms to continue.");
+            return;
+        }
+        await signInWithGoogle();
+    };
+
     const handleSignup = async () => {
-        if (!fullName.trim()) return Alert.alert("Name required", "Enter your full name.");
+        if (!fullName.trim()) return appAlert("Name required", "Enter your full name.");
         const normalizedEmail = email.trim().toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return Alert.alert("Invalid email", "Enter a valid email address.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return appAlert("Invalid email", "Enter a valid email address.");
         const phoneProblem = phoneError(country, phone);
-        if (phoneProblem) return Alert.alert("Invalid phone", phoneProblem);
-        if (!passwordValid) return Alert.alert("Weak password", "Use 8 to 64 characters with at least one letter and one number.");
-        if (password !== confirmPassword) return Alert.alert("Password mismatch", "Passwords do not match.");
-        if (!acceptedTerms) return Alert.alert("Terms required", "Please accept the terms to continue.");
+        if (phoneProblem) return appAlert("Invalid phone", phoneProblem);
+        if (!passwordValid) return appAlert("Weak password", "Use 8 to 64 characters with at least one letter and one number.");
+        if (password !== confirmPassword) return appAlert("Password mismatch", "Passwords do not match.");
+        if (!acceptedTerms) return appAlert("Terms required", "Please accept the terms to continue.");
         try {
             setLoading(true);
             const result = await mobileAuthApi.signup({ name: fullName.trim(), email: normalizedEmail, phone: joinPhone(country, phone), country: country.iso, password });
             router.push({ pathname: "/(auth)/verify-otp", params: { email: normalizedEmail, language } });
-            Alert.alert("Check your email", result.message || "Verification code sent.");
+            appAlert("Check your email", result.message || "Verification code sent.");
         } catch (error) {
             // A code was already sent recently: continue on the OTP screen instead of dead-ending.
             if (error instanceof ApiError && error.code === "VERIFICATION_PENDING") {
                 router.push({ pathname: "/(auth)/verify-otp", params: { email: normalizedEmail, language } });
                 return;
             }
-            Alert.alert("Signup failed", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Signup failed", error instanceof Error ? error.message : "Please try again.");
         } finally { setLoading(false); }
     };
 

@@ -1,104 +1,86 @@
-
+import { appAlert } from "@/components/AppDialog";
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "@/context/AuthContext";
 
-WebBrowser.maybeCompleteAuthSession();
+const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
 
-/** Google ID-token sign-in shared by login and signup screens. */
+function loadGoogle(): any {
+  try {
+    return require("@react-native-google-signin/google-signin");
+  } catch {
+    return null;
+  }
+}
+
 export function useGoogleSignIn() {
   const { signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
 
-  const androidClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim();
-
-  const webClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
-
-  const configured = Boolean(androidClientId && webClientId);
-
-  const [request, , promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId:
-      androidClientId || "not-configured.apps.googleusercontent.com",
-    webClientId:
-      webClientId || "not-configured.apps.googleusercontent.com",
-  });
-
-  // TEMPORARY DEBUG: Check the exact OAuth redirect URI.
   useEffect(() => {
-    if (!request?.url) {
-      console.log("[Google OAuth] Request URL not ready yet.");
-      return;
+    const mod = loadGoogle();
+    if (mod && webClientId) {
+      try {
+       
+        mod.GoogleSignin.configure({ webClientId });
+      } catch (e) {
+        console.log("[Google OAuth] configure failed:", e);
+      }
     }
-
-    const redirectMatch = request.url.match(/[?&]redirect_uri=([^&]+)/);
-    const redirectUri = redirectMatch
-      ? decodeURIComponent(redirectMatch[1])
-      : "REDIRECT_URI_NOT_FOUND";
-
-    console.log("[Google OAuth] Redirect URI:", redirectUri);
-    console.log("[Google OAuth] Request ready:", Boolean(request));
-  }, [request]);
+  }, []);
 
   const signIn = useCallback(async () => {
-    if (!configured || !request) {
-      Alert.alert(
+    const mod = loadGoogle();
+    if (!mod) {
+      appAlert(
         "Google sign-in unavailable",
-        "Google OAuth is not configured yet. Check the Google Client IDs in your environment variables."
+        "This build does not include Google Sign-In. Use the preview APK or a new development build."
       );
       return;
     }
+    if (!webClientId) {
+      appAlert("Google sign-in unavailable", "Google Web Client ID is not configured.");
+      return;
+    }
+
+    const { GoogleSignin, isSuccessResponse, statusCodes } = mod;
 
     try {
       setBusy(true);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-      console.log("[Google OAuth] Opening authentication...");
+       try {
+        await GoogleSignin.signOut();
+      } catch {
+        
+      }
 
-      const result = await promptAsync();
+      const result = await GoogleSignin.signIn();
+      if (!isSuccessResponse(result)) return; 
 
-      console.log("[Google OAuth] Result type:", result.type);
+      const idToken: string | undefined = result.data?.idToken;
+      if (!idToken) {
+        appAlert("Google sign-in failed", "No ID token returned. Check the Web Client ID.");
+        return;
+      }
+      await signInWithGoogle(idToken);
+    } catch (error: unknown) {
+      const code = (error as { code?: string } | null)?.code;
 
-      if (result.type !== "success") {
-        console.log("[Google OAuth] Authentication did not complete.");
-
-        if (result.type === "error") {
-          console.log("[Google OAuth] Error:", result.error);
-        }
-
+      if (code === statusCodes.SIGN_IN_CANCELLED || code === statusCodes.IN_PROGRESS) return;
+      if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        appAlert("Google sign-in failed", "Google Play Services is not available.");
         return;
       }
 
-      const idToken =
-        result.params?.id_token || result.authentication?.idToken;
-
-      if (!idToken) {
-        throw new Error(
-          "Google did not return an ID token. Check your OAuth client configuration."
-        );
-      }
-
-      console.log("[Google OAuth] ID token received successfully.");
-
-      await signInWithGoogle(idToken);
-
-      console.log("[Google OAuth] Backend sign-in successful.");
-    } catch (error) {
-      console.error("[Google OAuth] Sign-in error:", error);
-
-      Alert.alert(
+      console.error("[Google OAuth] error:", error);
+      appAlert(
         "Google sign-in failed",
         error instanceof Error ? error.message : "Please try again."
       );
     } finally {
       setBusy(false);
     }
-  }, [configured, request, promptAsync, signInWithGoogle]);
+  }, [signInWithGoogle]);
 
-  return {
-    signInWithGoogle: signIn,
-    googleLoading: busy,
-  };
+  return { signInWithGoogle: signIn, googleLoading: busy };
 }

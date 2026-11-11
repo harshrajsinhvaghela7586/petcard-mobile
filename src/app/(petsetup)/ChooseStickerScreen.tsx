@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React from "react";
 import {
-    Alert,
     Dimensions,
     FlatList,
     Image,
@@ -401,14 +401,14 @@ React.useEffect(() => {
         if (item.owned) { setSelectedSticker(item.id); return; }
         if ((item.price ?? 0) > 0) {
             if (!activePetId) {
-                Alert.alert("Paid sticker", `This sticker costs ${item.price} Paw Points. Complete pet setup first, then open Sticker Shop to purchase it.`);
+                appAlert("Paid sticker", `This sticker costs ${item.price} Paw Points. Complete pet setup first, then open Sticker Shop to purchase it.`);
                 return;
             }
             if (pawPoints < (item.price ?? 0)) {
-                Alert.alert("Not enough Paw Points", `This sticker costs ${item.price} Paw Points. Your current balance is ${pawPoints}.`);
+                appAlert("Not enough Paw Points", `This sticker costs ${item.price} Paw Points. Your current balance is ${pawPoints}.`);
                 return;
             }
-            Alert.alert("Unlock sticker?", `Spend ${item.price} Paw Points to permanently unlock this sticker? Your balance is ${pawPoints} Paw Points.`, [
+            appAlert("Unlock sticker?", `Spend ${item.price} Paw Points to permanently unlock this sticker? Your balance is ${pawPoints} Paw Points.`, [
                 { text: "Cancel", style: "cancel" },
                 { text: "Unlock", onPress: async () => {
                     try {
@@ -418,8 +418,8 @@ React.useEffect(() => {
                         setOwnedKeys(ownership.owned.map((entry) => entry.key));
                         setPawPoints(ownership.wallet?.pawPoints ?? result.wallet?.pawPoints ?? 0);
                         setSelectedSticker(item.id);
-                        Alert.alert(result.alreadyOwned ? "Sticker already unlocked" : "Sticker unlocked", "This sticker is permanently available across your account.");
-                    } catch (error) { Alert.alert("Purchase failed", error instanceof Error ? error.message : "Please try again."); }
+                        appAlert(result.alreadyOwned ? "Sticker already unlocked" : "Sticker unlocked", "This sticker is permanently available across your account.");
+                    } catch (error) { appAlert("Purchase failed", error instanceof Error ? error.message : "Please try again."); }
                 } },
             ]);
             return;
@@ -429,7 +429,7 @@ React.useEffect(() => {
 
     const handleContinue = async () => {
         const selected = stickers.find((item) => item.id === selectedSticker);
-        if (catalogError) { Alert.alert("Sticker catalogue unavailable", "Reconnect and reload stickers before continuing. Prices must be confirmed by the server."); return; }
+        if (catalogError) { appAlert("Sticker catalogue unavailable", "Reconnect and reload stickers before continuing. Prices must be confirmed by the server."); return; }
         if (!selected || selected.locked) return;
         if (catalogLoading || catalogError || catalogKeys.length === 0) return;
         const index = stickers.filter((item) => !item.empty).findIndex((item) => item.id === selected.id);
@@ -445,14 +445,14 @@ React.useEffect(() => {
                 const ownership = await petcardApi.ownedStickers();
                 setOwnedKeys(ownership.owned.map((entry) => entry.key));
                 setPawPoints(ownership.wallet?.pawPoints ?? pawPoints);
-            } catch (error) { Alert.alert("Could not select sticker", error instanceof Error ? error.message : "Please try again."); return; }
+            } catch (error) { appAlert("Could not select sticker", error instanceof Error ? error.message : "Please try again."); return; }
         } else {
             if (!ownedKeys.includes(stickerKey)) {
                 try {
                     const purchase = await petcardApi.purchaseSticker(stickerKey);
                     setPawPoints(purchase.wallet?.pawPoints ?? pawPoints);
                     setOwnedKeys((current) => current.includes(stickerKey) ? current : [...current, stickerKey]);
-                } catch (error) { Alert.alert("Could not unlock sticker", error instanceof Error ? error.message : "Please try again."); return; }
+                } catch (error) { appAlert("Could not unlock sticker", error instanceof Error ? error.message : "Please try again."); return; }
             }
             await updatePetSetupDraft({ stickerKeys: [stickerKey] });
         }

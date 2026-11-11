@@ -9,6 +9,7 @@ import PetActions from "@/components/PetActions";
 import { getPetAvatarSource } from "@/services/petAvatar";
 import { stickerUri } from "@/services/stickerImage";
 import { resolveSelectedPet } from "@/services/petSelection";
+import { useRequirePermission } from "@/hooks/use-require-permission";
 import ScreenHeader, {
     C,
     PawBackground,
@@ -35,7 +36,8 @@ export default function DigitalPetCardScreen() {
     const cardRef = useRef<View>(null);
     const params = useLocalSearchParams<{ petId?: string }>();
     useEffect(() => { let alive = true; petcardApi.listPets().then(async ({ pets }) => { const selected = params.petId ? pets.find((p) => p.id === params.petId) : await resolveSelectedPet(pets); if (alive) setPet(selected ?? null); }).catch(() => undefined); return () => { alive = false; }; }, [params.petId]);
-    if (!fontsLoaded) return null;
+    const allowed = useRequirePermission(pet, "view_card");
+    if (!fontsLoaded || !allowed) return null;
     const petName = pet?.name ?? FALLBACK_PET.name;
     const petBreed = pet?.breed || pet?.type || FALLBACK_PET.breed;
     const petId = pet?.id ?? FALLBACK_PET.id;

@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
     Dimensions,
     Image,
     Pressable,
@@ -127,7 +127,7 @@ export default function PetTypeScreen({
         petcardApi.listPets().then(({ pets: myPets }) => {
             const owned = (myPets ?? []).filter((p) => !p.role || p.role === "owner").length;
             if (alive && owned >= MAX_PETS) {
-                Alert.alert("Pet limit reached", "You can add a maximum of 2 pets.", [
+                appAlert("Pet limit reached", "You can add a maximum of 2 pets.", [
                     { text: "OK", onPress: () => (router.canGoBack() ? router.back() : router.replace("/HomeScreen" as any)) },
                 ]);
             }

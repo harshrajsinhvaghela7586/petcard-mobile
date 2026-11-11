@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
     getReminderPrefs,
@@ -8,7 +9,6 @@ import {
     type VibrateKey,
 } from "@/services/reminderPrefs";
 import {
-    Alert,
     Image,
     Modal,
     Pressable,
@@ -165,7 +165,7 @@ export default function RemindersAlertsScreen() {
             await petcardApi.updateProfile({ notificationPrefs: { push: !nextMuted } });
             setMuted(nextMuted);
         } catch (error) {
-            Alert.alert("Could not update reminders", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Could not update reminders", error instanceof Error ? error.message : "Please try again.");
         } finally {
             setSavingMute(false);
         }

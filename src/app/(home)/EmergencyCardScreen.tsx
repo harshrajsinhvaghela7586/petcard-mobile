@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import SafeImage from "@/components/SafeImage";
 import { downloadCard, printCard } from "@/services/cardExport";
@@ -5,7 +6,9 @@ import { getPetAvatarSource } from "@/services/petAvatar";
 import { stickerUri } from "@/services/stickerImage";
 import QRCode from "react-native-qrcode-svg";
 import React, { useEffect, useRef, useState } from "react";
-import { getPetQrValue, petcardApi, type Pet } from "@/services/petcardApi";
+import { getPetQrValue, petcardApi, type EmergencyCard, type Pet } from "@/services/petcardApi";
+import { useRequirePermission } from "@/hooks/use-require-permission";
+import { canOnPet } from "@/services/petPermissions";
 import { resolveSelectedPet } from "@/services/petSelection";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import { Nunito_600SemiBold, Nunito_700Bold, useFonts } from "@expo-google-fonts/nunito";
@@ -13,7 +16,6 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
-    Alert,
     Image,
     Linking,
     Pressable,
@@ -80,18 +82,40 @@ export default function EmergencyCardScreen() {
     const [fontsLoaded] = useFonts({ Fredoka_600SemiBold, Nunito_600SemiBold, Nunito_700Bold });
     const [pet, setPet] = useState<Pet | null>(null);
     const cardRef = useRef<View>(null);
-    const [owner, setOwner] = useState<{ name?: string; phone?: string }>({});
-    useEffect(() => { let alive = true; Promise.all([petcardApi.listPets(), petcardApi.bootstrap()]).then(async ([petResult, bootstrap]) => { const selected = await resolveSelectedPet(petResult.pets); if (alive) { setPet(selected ?? null); setOwner({ name: bootstrap.user?.name, phone: bootstrap.user?.phone }); } }).catch(() => undefined); return () => { alive = false; }; }, []);
-    if (!fontsLoaded) return null;
+    const [em, setEm] = useState<EmergencyCard | null>(null);
+    const [loaded, setLoaded] = useState(false);
+    useEffect(() => {
+        let alive = true;
+        petcardApi.listPets()
+            .then(async ({ pets }) => {
+                const selected = (await resolveSelectedPet(pets)) ?? null;
+                if (!alive) return;
+                setPet(selected);
+                setLoaded(true);
+                // The server sends the owner's contact and the medical details only to people the owner allowed.
+                if (selected && canOnPet(selected, "view_emergency")) {
+                    const data = await petcardApi.emergencyCard(selected.id).catch(() => null);
+                    if (alive && data) setEm(data.emergency);
+                }
+            })
+            .catch(() => { if (alive) setLoaded(true); });
+        return () => { alive = false; };
+    }, []);
+    const allowed = useRequirePermission(pet, "view_emergency", loaded);
+    if (!fontsLoaded || !allowed) return null;
     const petName = pet?.name ?? PET_FALLBACK.name;
     const petBreed = pet?.breed || pet?.type || PET_FALLBACK.breed;
     const petId = pet?.id ?? PET_FALLBACK.id;
-    const contacts = owner.name ? [{ key: "owner", role: "Primary Guardian", name: owner.name, phone: owner.phone || "" }] : [];
+    /* The owner's own name and number: never the signed-in person's (a co-guardian must not see their own number here). */
+    const contacts = em?.owner?.name ? [{ key: "owner", role: "Pet Parent (Owner)", name: em.owner.name, phone: em.owner.phone || "" }] : [];
+    const h = em?.health;
+    const vetName = h?.vetName || "";
+    const vetPhone = h?.vetPhone || "";
     const medical = [
-      { key: "allergy", label: "Allergies", value: pet?.health?.allergies?.join(", ") || "None recorded" },
-      { key: "cond", label: "Medical Conditions", value: pet?.health?.conditions?.join(", ") || "None recorded" },
-      { key: "vaccinated", label: "Vaccination", value: pet?.health?.vaccinated == null ? "Not recorded" : pet.health.vaccinated ? "Vaccinated" : "Not vaccinated" },
-      { key: "notes", label: "Special Notes", value: pet?.health?.notes || "None recorded" },
+      { key: "allergy", label: "Allergies", value: h?.allergies?.join(", ") || "None recorded" },
+      { key: "cond", label: "Medical Conditions", value: h?.conditions?.join(", ") || "None recorded" },
+      { key: "vaccinated", label: "Vaccination", value: h?.vaccinated == null ? "Not recorded" : h.vaccinated ? "Vaccinated" : "Not vaccinated" },
+      { key: "notes", label: "Special Notes", value: h?.notes || "None recorded" },
     ];
 
     /* Picture on the card: the sticker the user chose -> else the pet photo -> else the avatar (fallback). */
@@ -152,8 +176,8 @@ export default function EmergencyCardScreen() {
 
                         {/* scannable pet identity QR */}
                         <View style={{ alignItems: "center", paddingVertical: s(12) }}>
-                            {petId ? <QRCode value={getPetQrValue(pet)} size={s(112)} /> : <Text style={styles.medValue}>Create your pet profile to generate a QR code.</Text>}
-                            <Text style={styles.medLabel}>Scan for Pet ID: {petId || "Not generated"}</Text>
+                            {pet?.qrToken ? <QRCode value={getPetQrValue(pet)} size={s(112)} /> : null}
+                            {pet?.qrToken ? <Text style={styles.medLabel}>Scan for Pet ID: {petId || "Not generated"}</Text> : <Text style={styles.medLabel}>Pet ID: {petId || "Not generated"}</Text>}
                         </View>
 
                         {/* medical */}
@@ -212,16 +236,16 @@ export default function EmergencyCardScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.contactName} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                                    {VET.clinic}
+                                    {vetName || VET.clinic}
                                 </Text>
                                 <Text style={styles.contactRole} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                                    {VET.doctor}
+                                    {vetName ? "Veterinarian" : VET.doctor}
                                 </Text>
                             </View>
                             <Text style={styles.phone} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                                {pet?.health?.vetPhone || ""}
+                                {vetPhone}
                             </Text>
-                            <Pressable style={styles.callBtn} onPress={() => { const phone = pet?.health?.vetPhone; if (phone) call(phone); else Alert.alert("Vet details", "Add your vet phone number in the pet profile first."); }}>
+                            <Pressable style={styles.callBtn} onPress={() => { if (vetPhone) call(vetPhone); else appAlert("Vet details", "No vet phone number has been added yet."); }}>
                                 <Ionicons name="call" size={s(16)} color={C.orange} />
                             </Pressable>
                         </View>

@@ -1,4 +1,5 @@
-import { Alert, Platform } from "react-native";
+import { appAlert } from "@/components/AppDialog";
+import { Platform } from "react-native";
 import type { RefObject } from "react";
 import type { View } from "react-native";
 import { captureRef } from "react-native-view-shot";
@@ -20,7 +21,7 @@ export async function downloadCard(ref: RefObject<View | null>) {
         await new Promise((r) => setTimeout(r, 150));
         uri = await snap(ref, "tmpfile");
     } catch {
-        Alert.alert("Download failed", "Could not create the card image. Please try again.");
+        appAlert("Download failed", "Could not create the card image. Please try again.");
         return;
     }
     try {
@@ -35,7 +36,7 @@ export async function downloadCard(ref: RefObject<View | null>) {
     } catch {
         /* show a clear fallback message below */
     }
-    Alert.alert(
+    appAlert(
         "Sharing unavailable",
         "Could not open the share menu. Please try again or take a screenshot of the card."
     );
@@ -52,6 +53,6 @@ img{max-width:100%;max-height:92vh}</style></head>
 
     } catch (e) {
         const msg = String((e as Error)?.message ?? "");
-        if (!/cancel/i.test(msg) && Platform.OS) Alert.alert("Print failed", "Could not open the print dialog. Please try again.");
+        if (!/cancel/i.test(msg) && Platform.OS) appAlert("Print failed", "Could not open the print dialog. Please try again.");
     }
 }

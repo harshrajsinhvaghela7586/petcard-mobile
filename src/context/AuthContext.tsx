@@ -15,6 +15,18 @@ type AuthValue = {
 
 const AuthContext = createContext<AuthValue | null>(null);
 
+// Clears the phone's cached Google account so the next Google sign-in shows the account picker.
+// Lazy require: if the native module is missing (Expo Go / old build) this silently does nothing
+// instead of crashing the whole app.
+async function clearGoogleSession() {
+  try {
+    const mod = require("@react-native-google-signin/google-signin");
+    await mod.GoogleSignin.signOut();
+  } catch {
+    // module unavailable or no active Google session
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<StoredUser | null>(null);
@@ -89,6 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refreshToken = await tokenStorage.getRefresh();
     // Clear locally first so the UI never waits on the network.
     await tokenStorage.clear();
+    // Also forget the cached Google account so the next login/signup asks which account to use.
+    await clearGoogleSession();
     clearApiInflight();
     reset();
     if (refreshToken) {

@@ -44,6 +44,10 @@ export type Task = {
   category: string;
   recurrence?: { type: "once" | "daily" | "weekly"; daysOfWeek?: number[]; startDate: string; endDate?: string | null };
   timeOfDay?: string | null;
+  timeLabel?: string | null;
+  repeatLabel?: string;
+  reminderLabel?: string;
+  reminder?: { enabled: boolean; minutesBefore: number; sound?: boolean; vibrate?: boolean };
   completed?: boolean;
   completedAt?: string | null;
   points?: number;
@@ -74,6 +78,20 @@ export type Memory = {
 
 export type UploadedPhotoRef = { publicId: string; width?: number; height?: number; format?: string };
 
+export type EmergencyCard = {
+  petId: string;
+  name: string;
+  type: string;
+  breed: string;
+  gender: string;
+  birthDate: string | null;
+  weightKg: number | null;
+  photoUrl: string | null;
+  activeStickerKey: string | null;
+  owner: { name: string; phone?: string };
+  health: { vaccinated: boolean | null; allergies: string[]; conditions: string[]; notes: string; vetName: string; vetPhone: string };
+};
+
 export type Bootstrap = {
   user: {
     id?: string;
@@ -86,6 +104,8 @@ export type Bootstrap = {
     photoUrl?: string | null;
     language?: string;
     timezone?: string;
+    /** false for accounts that signed in with Google and never set a password */
+    hasPassword?: boolean;
     createdAt?: string;
     notificationPrefs?: { push?: boolean; email?: boolean };
   };
@@ -139,7 +159,8 @@ export const petcardApi = {
   getProfile: () => api<{ user: Bootstrap["user"] }>("/api/me/profile"),
   updateProfile: (body: ProfileUpdate) =>
     api<{ user: Bootstrap["user"] }>("/api/me/profile", { method: "PATCH", body }),
-  deleteAccount: (password: string) => api<{ message: string }>("/api/me", { method: "DELETE", body: { password } }),
+  /** Permanently deletes the account and its data. Password accounts send the password; Google-only accounts send confirm: "DELETE". */
+  deleteAccount: (proof: { password?: string; confirm?: string }) => api<{ message: string }>("/api/me", { method: "DELETE", body: proof }),
   rewards: (cursor?: string, limit = 20) => api<{ wallet: Bootstrap["wallet"]; history: unknown[]; nextCursor?: string | null }>(`/api/me/rewards${q({ cursor, limit })}`),
   claimDailyLoginReward: (petId: string, date = todayKey()) => api<{ rewarded: boolean; points: number; xp: number; progress: PetProgress | null; wallet: Bootstrap["wallet"] }>("/api/me/daily-login", { method: "POST", body: { petId, date } }),
 trackerSummary: (petId: string, date = todayKey()) => api<TrackerSummary>(`${petPath(petId)}/tracker/summary${q({ date })}`),
@@ -204,6 +225,9 @@ knowMenu: (petId: string, menuKey: string) => api<{ menu: KnowMenuData }>(`${pet
   rejectGuardianRequest: (petId: string, requestId: string) => api<{ message: string }>(`${petPath(petId)}/guardians/requests/${encodeURIComponent(requestId)}/reject`, { method: "POST", body: {} }),
   /* Backend: PATCH /api/pets/:petId/guardians/:userId { permissions } (owner only) */
   updateGuardianPermissions: (petId: string, userId: string, permissions: string[]) => api<{ message: string }>(`${petPath(petId)}/guardians/${encodeURIComponent(userId)}`, { method: "PATCH", body: { permissions } }),
+  /** A co-guardian leaves a pet (owners use deletePet instead). */
+  leavePet: (petId: string) => api<{ message: string }>(`${petPath(petId)}/guardians/leave`, { method: "POST", body: {} }),
+  emergencyCard: (petId: string) => api<{ emergency: EmergencyCard }>(`${petPath(petId)}/emergency`),
   removeGuardian: (petId: string, userId: string) => api<{ message: string }>(`${petPath(petId)}/guardians/${encodeURIComponent(userId)}`, { method: "DELETE" }),
   lookupPublicPetQr: (token: string) => api<{ pet: { name: string; type: string; breed?: string; gender?: string; birthDate?: string | null; weightKg?: number | null; avatarKey?: string | null; photoUrl?: string | null; emergency?: Record<string, unknown> } }>(`/api/public/pets/qr/${encodeURIComponent(token)}`),
   requestGuardianByPetQr: (token: string) => api<{ requestId: string; status: string; created: boolean }>("/api/guardian-requests/by-pet-qr", { method: "POST", body: { token } }),

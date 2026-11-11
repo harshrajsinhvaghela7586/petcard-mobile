@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useState } from "react";
 import {
-    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -23,6 +23,7 @@ import ScreenHeader, {
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import DateField, { toIsoDate } from "@/components/DateField";
 import { petcardApi } from "@/services/petcardApi";
+import { canOnPet } from "@/services/petPermissions";
 import { resolveSelectedPet } from "@/services/petSelection";
 import { uploadLocalPhoto } from "@/services/photoUpload";
 
@@ -75,13 +76,13 @@ export default function AddMemoryScreen() {
     const pickImages = async () => {
         const left = MAX_IMAGES - images.length;
         if (left <= 0) {
-            Alert.alert("Limit reached", `You can add up to ${MAX_IMAGES} photos.`);
+            appAlert("Limit reached", `You can add up to ${MAX_IMAGES} photos.`);
             return;
         }
 
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
-            Alert.alert(
+            appAlert(
                 "Permission needed",
                 "Please allow gallery access to add photos."
             );
@@ -117,6 +118,7 @@ export default function AddMemoryScreen() {
             const { pets } = await petcardApi.listPets();
             const pet = await resolveSelectedPet(pets ?? []);
             if (!pet?.id) throw new Error("Finish pet setup before saving a memory.");
+            if (!canOnPet(pet, "manage_memories")) throw new Error("The pet owner has not allowed you to add or change memories.");
             let photo: { publicId: string; width?: number; height?: number; format?: string } | undefined;
             const localImage = images.find((uri) => !uri.startsWith("https://") && !uri.startsWith("http://"));
             if (localImage) {
@@ -134,7 +136,7 @@ export default function AddMemoryScreen() {
     };
 
     const handleDelete = () =>
-        Alert.alert("Delete memory?", "This can't be undone.", [
+        appAlert("Delete memory?", "This can't be undone.", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete",

@@ -1,10 +1,10 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Dimensions,
     Image,
     Pressable,
     ScrollView,
-    Alert,
     StyleSheet,
     View
 } from "react-native";
@@ -133,12 +133,12 @@ export default function PetCardReadyScreen() {
         try {
             const uri = await captureRef(cardRef, { format: "png", quality: 1 });
             if (!(await Sharing.isAvailableAsync())) {
-                Alert.alert("Sharing not available", "Sharing is not supported on this device.");
+                appAlert("Sharing not available", "Sharing is not supported on this device.");
                 return;
             }
             await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: `${petName}'s PetCard` });
         } catch (error) {
-            Alert.alert("Could not share PetCard", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Could not share PetCard", error instanceof Error ? error.message : "Please try again.");
         }
     };
 

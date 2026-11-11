@@ -11,13 +11,20 @@
       "icon": "./assets/images/app-icon.png"
     },
     "android": {
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/images/app-icon.png",
-    "backgroundColor": "#FFFFFF"
-  },
-  "predictiveBackGestureEnabled": false,
-  "package": "com.harshrajsinh7419.petcardmobile"
-},
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/app-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.harshrajsinh7419.petcardmobile",
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
     "web": {
       "output": "static"
     },
@@ -39,7 +46,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow PetCard to use your camera to scan pet QR codes."
+          "cameraPermission": "Allow PetCard to use your camera to scan pet QR codes.",
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -56,7 +64,8 @@
         }
       ],
       "expo-sharing",
-      "expo-asset"
+      "expo-asset",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -65,8 +74,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8846b3bf-1d12-4fb6-aca6-c71af93464bd"
+        "projectId": "8daee91e-9491-4847-a221-726dba3aae09"
       }
-    }
+    },
+    "owner": "harshrajsinh_vaghela"
   }
 }

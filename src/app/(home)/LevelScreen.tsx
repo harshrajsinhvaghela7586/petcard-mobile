@@ -10,6 +10,7 @@ import { TranslatedText as Text } from "@/i18n/TranslatedText";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
+import { resolveSelectedPet } from "@/services/petSelection";
 import { petcardApi } from "@/services/petcardApi";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
 import {
@@ -37,8 +38,8 @@ export default function LevelScreen() {
     const [currentXP, setCurrentXP] = useState(CURRENT_XP);
     useFocusEffect(useCallback(() => {
       let alive = true;
-      petcardApi.bootstrap().then((data) => {
-        const pet = data.pets?.[0];
+      petcardApi.bootstrap().then(async (data) => {
+        const pet = await resolveSelectedPet(data.pets ?? []);
         if (alive && pet?.progress) { setCurrentLevel(pet.progress.level); setCurrentXP(pet.progress.xp); }
       }).catch(() => undefined);
       return () => { alive = false; };

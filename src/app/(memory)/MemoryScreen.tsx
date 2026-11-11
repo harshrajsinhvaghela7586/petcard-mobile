@@ -1,6 +1,8 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi, Memory as ApiMemory, type Pet } from "@/services/petcardApi";
+import { useRequirePermission } from "@/hooks/use-require-permission";
+import { canOnPet } from "@/services/petPermissions";
 import { resolveSelectedPet } from "@/services/petSelection";
 import {
     Dimensions,
@@ -41,7 +43,6 @@ type Memory = {
 
 const TABS: { key: "photo" | "video" | "milestone" | "album"; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: "photo", label: "Photos", icon: "image-outline" },
-    { key: "video", label: "Videos", icon: "play-outline" },
     { key: "milestone", label: "Milestones", icon: "star-outline" },
     { key: "album", label: "Albums", icon: "heart-outline" },
 ];
@@ -63,7 +64,7 @@ export default function MemoryScreen() {
                 const { pets } = await petcardApi.listPets();
                 const selected = await resolveSelectedPet(pets ?? []);
                 if (alive) setPet(selected ?? null);
-                if (!selected?.id) { if (alive) setMemories([]); return; }
+                if (!selected?.id || !canOnPet(selected, "view_memories")) { if (alive) setMemories([]); return; }
                 const result = await petcardApi.listMemories(selected.id, undefined, 30);
                 if (!alive) return;
                 setMemories((result.memories ?? []).map((m: ApiMemory) => {
@@ -73,7 +74,7 @@ export default function MemoryScreen() {
                     return { id: m.id, title: m.title || "Memory", date: displayDate, month, note: m.caption || "", images: m.photo?.url ? [{ uri: m.photo.url }] : [], kind: "photo" as const, icon: "image-outline" as const };
                 }));
             } catch (error) {
-                if (alive) Alert.alert("Couldn't load memories", error instanceof Error ? error.message : "Please try again.");
+                if (alive) appAlert("Couldn't load memories", error instanceof Error ? error.message : "Please try again.");
             } finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };
@@ -91,7 +92,9 @@ export default function MemoryScreen() {
         return Object.entries(map);
     }, [list]);
 
-    if (!fontsLoaded) return null;
+    const mayView = useRequirePermission(pet, "view_memories", !loading);
+    const canManageMemories = canOnPet(pet, "manage_memories");
+    if (!fontsLoaded || !mayView) return null;
 
     /* Picture in the count card (same as the Digital PetCard): the sticker the user chose -> else the pet photo -> else the avatar (fallback). */
     const rawSticker: any = stickerUri(pet?.activeStickerKey);
@@ -99,7 +102,7 @@ export default function MemoryScreen() {
     const cardImage: any = stickerSource ?? (pet?.photoUrl ? { uri: pet.photoUrl } : null);
 
     const openEdit = (m: Memory) =>
-        router.push({
+        canManageMemories && router.push({
             pathname: "/AddMemoryScreen",
             params: { id: m.id, title: m.title, date: m.date, note: m.note },
         } as any);
@@ -255,7 +258,7 @@ export default function MemoryScreen() {
             </ScrollView>
 
             {/* ADD MEMORY */}
-            <View style={styles.bottomContainer}>
+            {canManageMemories ? <View style={styles.bottomContainer}>
                 <View style={styles.buttonWrapper}>
                     <PrimaryButton
                         title="Add Memory"
@@ -269,7 +272,7 @@ export default function MemoryScreen() {
                         }
                     />
                 </View>
-            </View>
+            </View> : null}
         </View>
     );
 }

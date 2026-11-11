@@ -28,6 +28,7 @@ type Row = {
 };
 
 import LanguageSheet from "@/components/LanguageSheet";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { useLang } from "@/i18n/LanguageContext";
 import { LANGS } from "@/i18n/strings";
 
@@ -63,6 +64,7 @@ export default function SettingsScreen() {
     const { signOut } = useAuth();
     const { lang, t } = useLang();
     const [langOpen, setLangOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const [fontsLoaded] = useAppFonts();
     if (!fontsLoaded) return null;
 
@@ -121,8 +123,15 @@ export default function SettingsScreen() {
                         <MaterialCommunityIcons name="paw" size={s(14)} color={C.orange} />
                     </View>
                 </Pressable>
+
+                {/* DELETE ACCOUNT */}
+                <Pressable style={styles.deleteAccount} onPress={() => setDeleteOpen(true)}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={s(18)} color="#E5484D" />
+                    <Text style={styles.deleteAccountText} maxFontSizeMultiplier={1.1}>Delete Account</Text>
+                </Pressable>
             </ScrollView>
             <LanguageSheet visible={langOpen} onClose={() => setLangOpen(false)} />
+            <DeleteAccountDialog visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
         </View>
     );
 }
@@ -155,6 +164,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: s(4),
     },
+    deleteAccount: { marginHorizontal: SIDE, marginTop: s(12), paddingVertical: s(12), borderRadius: s(14), backgroundColor: "#FFE5E1", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s(8) },
+    deleteAccountText: { fontFamily: "Nunito_700Bold", fontSize: s(14), color: "#E5484D" },
     logoutRow: { flexDirection: "row", alignItems: "center", gap: s(8) },
     logoutTitle: { fontFamily: "Nunito_700Bold", fontSize: s(20), color: C.orange },
     logoutSub: { fontFamily: "Nunito_600SemiBold", fontSize: s(12), color: C.brown },

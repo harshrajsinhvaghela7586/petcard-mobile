@@ -1,6 +1,7 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useState } from "react";
-import { Alert } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { resolveSelectedPet } from "@/services/petSelection";
 import { petcardApi, type Pet } from "@/services/petcardApi";
 import {
     Image,
@@ -45,14 +46,14 @@ export default function AchievementsScreen() {
         (async () => {
             try {
                 const bootstrap = await petcardApi.bootstrap();
-                const pet = bootstrap.pets?.[0] as Pet | undefined;
+                const pet = (await resolveSelectedPet(bootstrap.pets ?? [])) as Pet | null;
                 if (!pet?.id) { if (alive) { setAchievements([]); setUnlockedCount(0); } return; }
                 const data = await petcardApi.achievements(pet.id);
                 if (!alive) return;
                 const palette = [{ color: "#5E9B2D", tint: "#EAF3DC" }, { color: "#E08A00", tint: "#FFF0D6" }, { color: "#3B6FB6", tint: "#E6F0FA" }, { color: "#7A5CFF", tint: "#F3EAFF" }];
                 setAchievements(data.achievements.map((a, i) => ({ key: a.key, title: a.title, sub: a.description, icon: a.icon, done: a.done, progress: a.progress, total: a.target, unlockedAt: a.unlockedAt, ...palette[i % palette.length] })));
                 setUnlockedCount(data.unlockedCount);
-            } catch (error) { if (alive) Alert.alert("Achievements unavailable", error instanceof Error ? error.message : "Please try again."); }
+            } catch (error) { if (alive) appAlert("Achievements unavailable", error instanceof Error ? error.message : "Please try again."); }
             finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };

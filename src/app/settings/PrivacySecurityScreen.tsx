@@ -60,7 +60,9 @@ const SECTIONS: InfoSection[] = [
             "You may be able to review or update certain profile and pet information through the product.",
             "You may contact PetCard regarding questions, corrections or requests relating to your information.",
             "You may choose not to provide certain optional information, although some features may require specific information to function.",
-            "Requests relating to account deletion or data removal will be handled according to the final PetCard data-retention and deletion policy and applicable law.",
+            "You can delete your account at any time in Settings > Delete Account. This permanently erases your account and the data linked to it, including pets you own, health records, memories and rewards.",
+            "When you remove a single pet, it disappears from the app for you and its guardians. Its records may be kept in our systems for a limited period and are erased when the account is deleted.",
+            "Co-guardians lose access to a pet as soon as the owner removes it or deletes their account.",
         ],
     },
     {

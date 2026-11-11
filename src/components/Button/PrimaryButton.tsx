@@ -28,7 +28,17 @@ interface PrimaryButtonProps {
 
     // Optional icon
     icon?: React.ReactNode;
+
+    // "danger" = the same animated gradient button in red (delete / remove actions)
+    variant?: "primary" | "danger";
+    // Shorter button for dialogs and sheets
+    compact?: boolean;
 }
+
+const GRADIENTS = {
+    primary: ["#ff7a00", "#ff9b2f", "#ff8400", "#ffb347", "#ff7a00"],
+    danger: ["#e5484d", "#ff6a5e", "#e8453a", "#ff7d6e", "#e5484d"],
+} as const;
 
 const PrimaryButton = ({
     title,
@@ -37,6 +47,8 @@ const PrimaryButton = ({
     textStyle,
     disabled = false,
     icon,
+    variant = "primary",
+    compact = false,
 }: PrimaryButtonProps) => {
     const gradientX = useSharedValue(0);
 
@@ -67,19 +79,15 @@ const PrimaryButton = ({
             disabled={disabled}
             style={({ pressed }) => [
                 styles.button,
+                compact && styles.compact,
+                variant === "danger" && styles.danger,
                 style,
                 pressed && styles.pressed,
                 disabled && styles.disabled,
             ]}
         >
             <AnimatedGradient
-                colors={[
-                    "#ff7a00",
-                    "#ff9b2f",
-                    "#ff8400",
-                    "#ffb347",
-                    "#ff7a00",
-                ]}
+                colors={GRADIENTS[variant]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
@@ -123,6 +131,14 @@ const styles = StyleSheet.create({
         shadowRadius: 14,
 
         elevation: 6,
+    },
+
+    compact: {
+        height: 46,
+    },
+
+    danger: {
+        shadowColor: "#e5484d",
     },
 
     gradient: {

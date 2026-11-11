@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useState } from "react";
 import {
-    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -64,7 +64,7 @@ export default function GuardianRequestsScreen() {
       const rows = data.pendingRequests ?? [];
       setRequests(rows);
       setPermissions((old) => Object.fromEntries(rows.map((r) => [r.id, old[r.id] ?? ["view_pet", "view_tasks"]])));
-    } catch (error) { Alert.alert("Could not load guardian requests", error instanceof Error ? error.message : "Please try again."); }
+    } catch (error) { appAlert("Could not load guardian requests", error instanceof Error ? error.message : "Please try again."); }
     finally { setLoading(false); }
   }, []);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
@@ -86,9 +86,9 @@ export default function GuardianRequestsScreen() {
       else await petcardApi.rejectGuardianRequest(pet.id, request.id);
       if (kind === "contact") setContactRequests((old) => old.filter((r) => r.id !== request.id));
       else setRequests((old) => old.filter((r) => r.id !== request.id));
-      if (kind === "contact") Alert.alert(action === "approve" ? "Details shared" : "Request declined", action === "approve" ? `${request.requester.name} can now see your pet parent details.` : "Your details stay private.");
-      else Alert.alert(action === "approve" ? "Guardian approved" : "Request declined", action === "approve" ? "The guardian can now access the pet using the permissions you selected. An email notification will be sent." : "The requester has been notified.");
-    } catch (error) { Alert.alert("Action failed", error instanceof Error ? error.message : "Please try again."); }
+      if (kind === "contact") appAlert(action === "approve" ? "Details shared" : "Request declined", action === "approve" ? `${request.requester.name} can now see your pet parent details.` : "Your details stay private.");
+      else appAlert(action === "approve" ? "Guardian approved" : "Request declined", action === "approve" ? "The guardian can now access the pet using the permissions you selected. An email notification will be sent." : "The requester has been notified.");
+    } catch (error) { appAlert("Action failed", error instanceof Error ? error.message : "Please try again."); }
     finally { setBusyId(null); }
   };
   return (

@@ -1,7 +1,7 @@
+import { appAlert } from "@/components/AppDialog";
 import AvatarFrame from "@/components/AvatarFrame";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -37,7 +37,7 @@ export default function AvatarFramesScreen() {
   useEffect(() => {
     let alive = true;
     petcardApi.listPets().then(({ pets }) => { if (alive) setPet(null); resolveSelectedPet(pets ?? []).then((p) => { if (alive) setPet(p ?? null); }); })
-      .catch((error) => { if (alive) Alert.alert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); });
+      .catch((error) => { if (alive) appAlert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); });
     return () => { alive = false; };
   }, []);
   if (!fontsLoaded) return null;
@@ -48,7 +48,7 @@ export default function AvatarFramesScreen() {
     try {
       const { pet: updated } = await petcardApi.updatePet(pet.id, { activeFrameKey: frameKey });
       setPet(updated);
-    } catch (error) { Alert.alert("Could not apply frame", error instanceof Error ? error.message : "Please try again."); }
+    } catch (error) { appAlert("Could not apply frame", error instanceof Error ? error.message : "Please try again."); }
     finally { setSaving(false); }
   };
   return (

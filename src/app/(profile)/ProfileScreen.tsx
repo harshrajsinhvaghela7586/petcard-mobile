@@ -1,7 +1,9 @@
+import { appAlert, appConfirm } from "@/components/AppDialog";
+import { canOnPet, isPetOwner } from "@/services/petPermissions";
+import { cancelRemindersForTasks } from "@/services/taskReminders";
 import { appLocale } from "@/i18n/autoTranslate";
 import React, { useCallback, useState } from "react";
 import {
-    Alert,
     Dimensions,
     Image,
     Pressable,
@@ -155,6 +157,7 @@ export default function ProfileScreen() {
     const { signOut, user } = useAuth();
     const [bootstrap, setBootstrap] = useState<Bootstrap | null>(null);
     const [profileError, setProfileError] = useState<string | null>(null);
+    const [removingPet, setRemovingPet] = useState(false);
     const [selectedPetId, setSelectedPetIdState] = useState<string | null>(null);
     const activePet = bootstrap?.pets?.find((pet) => pet.id === selectedPetId) ?? bootstrap?.pets?.[0];
     /* a person who only co-guards (owns no pet) cannot refer friends or create pets: they scan the owner's QR instead */
@@ -184,9 +187,37 @@ export default function ProfileScreen() {
 const ownedPets = (bootstrap?.pets ?? []).filter((p) => !p.role || p.role === "owner").length;
 const handleAddPet = () => {
     if (isGuardianOnly) { router.push("/ScanQRScreen" as any); return; }
-    if (ownedPets >= MAX_PETS) { Alert.alert("Pet limit reached", "You can add a maximum of 2 pets."); return; }
+    if (ownedPets >= MAX_PETS) { appAlert("Pet limit reached", "You can add a maximum of 2 pets."); return; }
     router.push("/PetTypeScreen" as any);
 };
+    /* Owner only: remove the active pet. Everything about it disappears from the app (the data is kept on the server). */
+    const handleRemovePet = async () => {
+        if (!activePet || removingPet || !isPetOwner(activePet)) return;
+        const name = activePet.name;
+        const yes = await appConfirm({
+            title: "Remove pet?",
+            message: `Are you sure you want to remove ${name}? Its tasks, health records, memories and guardians will disappear from the app.`,
+            confirmText: "Yes, remove",
+            cancelText: "Cancel",
+            destructive: true,
+        });
+        if (!yes) return;
+        setRemovingPet(true);
+        try {
+            // Silence this pet's local task alarms first (they are only known while the pet still exists).
+            const { tasks } = await petcardApi.listAllTasks(activePet.id).catch(() => ({ tasks: [] as { id: string }[] }));
+            await petcardApi.deletePet(activePet.id);
+            await cancelRemindersForTasks(tasks.map((t) => t.id)).catch(() => undefined);
+            const data = await petcardApi.bootstrap();
+            const next = data.pets?.[0] ?? null;
+            if (next) await setSelectedPetId(next.id);
+            setBootstrap(data);
+            setSelectedPetIdState(next?.id ?? null);
+            appAlert("Pet removed", `${name} was removed.`, [{ text: "OK", onPress: () => { if (!next) router.replace("/PetTypeScreen" as any); } }], { cancelable: false });
+        } catch (error) {
+            appAlert("Couldn't remove pet", error instanceof Error ? error.message : "Please try again.");
+        } finally { setRemovingPet(false); }
+    };
     /* Location: exactly what the user saved in Edit Profile (no country / timezone guessing). */
     const profileUser = (bootstrap?.user ?? user) as any;
     const locationText = profileUser?.location ? String(profileUser.location) : "Location not set";
@@ -419,13 +450,19 @@ const handleAddPet = () => {
                               ["XP", String(activePet.progress?.xp ?? 0)],
                               ["Care streak", `${activePet.streak?.current ?? 0} days`],
                               ["Role", activePet.role && activePet.role !== "owner" ? "Co-Guardian" : "Owner"],
-                            ].map(([label, value]) => (
+                            ].filter(([label]) => canOnPet(activePet, "view_health") || !["Vaccinated", "Allergies", "Conditions"].includes(label)).map(([label, value]) => (
                               <View key={label} style={{ width: "47%", backgroundColor: "#FFFAF5", borderRadius: s(10), padding: s(10) }}>
                                 <Text style={{ color: C.muted, fontFamily: "Nunito_600SemiBold", fontSize: s(11) }}>{label}</Text>
                                 <Text style={{ color: C.brown, fontFamily: "Nunito_700Bold", fontSize: s(13), marginTop: s(2) }} numberOfLines={2}>{value}</Text>
                               </View>
                             ))}
                         </View>
+                        {isPetOwner(activePet) ? (
+                            <Pressable onPress={handleRemovePet} disabled={removingPet} style={{ marginTop: s(14), alignSelf: "center", flexDirection: "row", alignItems: "center", gap: s(6), paddingVertical: s(8), paddingHorizontal: s(14), borderRadius: s(12), backgroundColor: "#FFE5E1", opacity: removingPet ? 0.5 : 1 }}>
+                                <MaterialCommunityIcons name="trash-can-outline" size={s(18)} color="#E5484D" />
+                                <Text style={{ color: "#E5484D", fontFamily: "Nunito_700Bold", fontSize: s(13) }} maxFontSizeMultiplier={1.1}>Remove {activePet.name.length > 14 ? `${activePet.name.slice(0, 14)}…` : activePet.name}</Text>
+                            </Pressable>
+                        ) : null}
                     </View>
                 ) : (
                     <View style={[styles.card, { padding: s(16), marginTop: s(12) }]}>

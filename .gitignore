@@ -18,6 +18,8 @@ web-build/
 .env.*
 !.env.example
 
+eas-archive/
+
 # Native build output (android/ is committed, its build junk is not)
 android/.gradle/
 android/build/

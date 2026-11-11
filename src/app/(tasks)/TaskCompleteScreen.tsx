@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     Image,
     Pressable,
@@ -11,7 +11,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { C, PawBackground, SIDE, cardStyle, s, useAppFonts } from "@/components/SectionHeader";
 import PrimaryButton from "@/components/Button/PrimaryButton";
-import { getTask } from "@/constants/tasks";
+import { petcardApi, Task } from "@/services/petcardApi";
+import { petImageSource } from "@/services/stickerImage";
+import { useSelectedPet } from "@/hooks/use-selected-pet";
+
+const CATEGORY_ICONS: Record<string, string> = { food: "food-variant", water: "water", walk: "dog-service", play: "tennis-ball", grooming: "brush", training: "school", medication: "pill", vet: "medical-bag", hygiene: "shower", vaccination: "needle" };
 
 /* confetti: static pieces (left %, top px, color, rotation) */
 const CONFETTI = [
@@ -30,9 +34,26 @@ export default function TaskCompleteScreen() {
     const insets = useSafeAreaInsets();
     const { task } = useLocalSearchParams<{ task?: string }>();
     const [fontsLoaded] = useAppFonts();
+    const { pet } = useSelectedPet();
+    const [done, setDone] = useState<Task | null>(null);
+
+    /* The task that was just completed (not a hard-coded sample). */
+    useEffect(() => {
+        if (!pet?.id || !task) return;
+        let alive = true;
+        petcardApi.listAllTasks(pet.id)
+            .then((r) => { if (alive) setDone((r.tasks ?? []).find((x) => x.id === task) ?? null); })
+            .catch(() => {});
+        return () => { alive = false; };
+    }, [pet?.id, task]);
+
     if (!fontsLoaded) return null;
 
-    const t = getTask(task);
+    const t = {
+        title: done?.title ?? "",
+        time: done?.timeLabel || done?.repeatLabel || "Today",
+        icon: CATEGORY_ICONS[done?.category ?? ""] ?? "paw",
+    };
     const goTasks = () => router.replace("/TasksScreen" as any);
 
     return (
@@ -65,19 +86,11 @@ export default function TaskCompleteScreen() {
                 <Text style={styles.title} maxFontSizeMultiplier={1.1}>Great Job!</Text>
                 <Text style={styles.subtitle} maxFontSizeMultiplier={1.1}>Task Completed</Text>
 
-                <View style={styles.xpPill}>
-                    <Image
-                        source={require("../../../assets/images/rewards/pawcoin.png")}
-                        resizeMode="contain"
-                        style={styles.xpCoin}
-                    />
-                    <Text style={styles.xpText} maxFontSizeMultiplier={1.1}>+{t.xp} XP</Text>
-                </View>
 
                 {/* DOG */}
                 <View style={styles.dogWrap}>
                     <Image
-                        source={require("../../../assets/images/pets/huchiko.png")}
+                        source={petImageSource(pet)}
                         resizeMode="contain"
                         style={styles.dog}
                     />
@@ -89,13 +102,13 @@ export default function TaskCompleteScreen() {
 
             {/* BOTTOM */}
             <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, s(12)) }]}>
-                <View style={styles.taskCard}>
+                {done ? <View style={styles.taskCard}>
                     <MaterialCommunityIcons name={t.icon as any} size={s(34)} color={C.orange} />
                     <View style={{ marginLeft: s(14) }}>
                         <Text style={styles.taskTitle} maxFontSizeMultiplier={1.1}>{t.title}</Text>
                         <Text style={styles.taskTime} maxFontSizeMultiplier={1.1}>{t.time}</Text>
                     </View>
-                </View>
+                </View> : null}
 
                 <View style={styles.buttonWrapper}>
                     <PrimaryButton
@@ -139,20 +152,6 @@ const styles = StyleSheet.create({
         lineHeight: s(38),
         color: C.orange,
     },
-    xpPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: s(6),
-        marginTop: s(12),
-        paddingHorizontal: s(14),
-        paddingVertical: s(5),
-        borderRadius: s(16),
-        backgroundColor: C.white,
-        borderWidth: 1,
-        borderColor: C.peachBorder,
-    },
-    xpCoin: { width: s(20), height: s(20) },
-    xpText: { fontFamily: "Nunito_700Bold", fontSize: s(13), color: C.brown },
 
     dogWrap: { marginTop: s(10), alignItems: "center", justifyContent: "center" },
     dog: { width: s(230), height: s(230) },

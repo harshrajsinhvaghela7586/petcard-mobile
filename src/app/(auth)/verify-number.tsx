@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -331,7 +331,7 @@ export default function VerifyNumberScreen() {
     const code = otp.join("");
 
     if (code.length !== OTP_LENGTH) {
-      Alert.alert(t.enterCodeTitle, t.enterCodeMessage);
+      appAlert(t.enterCodeTitle, t.enterCodeMessage);
       return;
     }
 
@@ -344,14 +344,14 @@ export default function VerifyNumberScreen() {
 
       // TODO: backend ke time yahan OTP verify API lagani hai
 
-      Alert.alert(t.verifiedTitle, t.verifiedMessage, [
+      appAlert(t.verifiedTitle, t.verifiedMessage, [
         {
           text: t.continueText,
           onPress: () => router.back(),
         },
       ]);
     } catch (error) {
-      Alert.alert(
+      appAlert(
         t.failedTitle,
         error instanceof Error ? error.message : t.invalidCode
       );
@@ -374,9 +374,9 @@ export default function VerifyNumberScreen() {
       setSecondsLeft(RESEND_SECONDS);
       inputRefs.current[0]?.focus();
 
-      Alert.alert(t.sentTitle, t.sentMessage);
+      appAlert(t.sentTitle, t.sentMessage);
     } catch (error) {
-      Alert.alert(
+      appAlert(
         t.resendFailedTitle,
         error instanceof Error ? error.message : t.tryAgain
       );

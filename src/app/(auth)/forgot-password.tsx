@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -270,7 +270,7 @@ export default function ForgotPasswordScreen() {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      Alert.alert("Invalid email", "Please enter a valid email address.");
+      appAlert("Invalid email", "Please enter a valid email address.");
       return;
     }
 
@@ -282,13 +282,13 @@ export default function ForgotPasswordScreen() {
       setEmail(normalizedEmail);
       setStage("reset");
 
-      Alert.alert(
+      appAlert(
         "Check your email",
         result.message ||
           "If a verified account exists, a reset code has been sent."
       );
     } catch (error) {
-      Alert.alert(
+      appAlert(
         "Request failed",
         error instanceof Error ? error.message : "Please try again."
       );
@@ -299,7 +299,7 @@ export default function ForgotPasswordScreen() {
 
   const resetPassword = async () => {
     if (!/^\d{6}$/.test(otp)) {
-      Alert.alert("Invalid code", "Enter the 6-digit code from your email.");
+      appAlert("Invalid code", "Enter the 6-digit code from your email.");
       return;
     }
 
@@ -309,7 +309,7 @@ export default function ForgotPasswordScreen() {
       !/[A-Za-z]/.test(password) ||
       !/\d/.test(password)
     ) {
-      Alert.alert(
+      appAlert(
         "Weak password",
         "Use 8 to 64 characters with at least one letter and one number."
       );
@@ -317,7 +317,7 @@ export default function ForgotPasswordScreen() {
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Password mismatch", "Passwords do not match.");
+      appAlert("Password mismatch", "Passwords do not match.");
       return;
     }
 
@@ -330,7 +330,7 @@ export default function ForgotPasswordScreen() {
         newPassword: password,
       });
 
-      Alert.alert(
+      appAlert(
         "Password reset",
         result.message || "Password reset successfully.",
         [
@@ -345,7 +345,7 @@ export default function ForgotPasswordScreen() {
         ]
       );
     } catch (error) {
-      Alert.alert(
+      appAlert(
         "Reset failed",
         error instanceof Error ? error.message : "Please try again."
       );

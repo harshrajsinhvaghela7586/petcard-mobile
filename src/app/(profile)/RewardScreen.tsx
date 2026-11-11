@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import React from "react";
 import {
     Image,
@@ -19,7 +20,6 @@ import ScreenHeader, {
 import { RAW_STICKER_SETS } from "@/constants/stickerSets";
 import { petcardApi, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
-import { Alert } from "react-native";
 
 type Sticker = { id: string; image: any; cost?: number };
 
@@ -77,7 +77,7 @@ export default function RewardsScreen() {
                     const { items } = await petcardApi.listStickers(selected.type, avatarSlug(selected.avatarKey));
                     if (alive) setCatalog(items.map((item) => ({ key: item.key, price: item.price ?? 0, label: item.label })));
                 }
-            } catch (error) { if (alive) Alert.alert("Couldn't load rewards", error instanceof Error ? error.message : "Please try again."); }
+            } catch (error) { if (alive) appAlert("Couldn't load rewards", error instanceof Error ? error.message : "Please try again."); }
             finally { if (alive) setLoadingPoints(false); }
         })();
         return () => { alive = false; };
@@ -103,7 +103,7 @@ export default function RewardsScreen() {
                 try {
                     await petcardApi.selectStickerForPet(pet.id, sticker.catalogKey);
                     setActiveKey(sticker.catalogKey);
-                } catch (error) { Alert.alert("Couldn't change sticker", error instanceof Error ? error.message : "Please try again."); }
+                } catch (error) { appAlert("Couldn't change sticker", error instanceof Error ? error.message : "Please try again."); }
             })();
             return;
         }
@@ -114,11 +114,11 @@ export default function RewardsScreen() {
                 setActiveKey(sticker.catalogKey);
                 const ownership = await petcardApi.ownedStickers();
                 setOwned(ownership.owned.map((item) => item.key)); setPoints(ownership.wallet?.pawPoints ?? result.wallet?.pawPoints ?? points);
-            } catch (error) { Alert.alert("Purchase failed", error instanceof Error ? error.message : "Please try again."); }
+            } catch (error) { appAlert("Purchase failed", error instanceof Error ? error.message : "Please try again."); }
         };
         if (sticker.cost <= 0) { void doPurchase(); return; }
-        if (points < sticker.cost) { Alert.alert("Not enough Paw Points", `This sticker costs ${sticker.cost} Paw Points. Your balance is ${points}.`); return; }
-        Alert.alert("Unlock sticker?", `Spend ${sticker.cost} Paw Points to permanently unlock this sticker?`, [
+        if (points < sticker.cost) { appAlert("Not enough Paw Points", `This sticker costs ${sticker.cost} Paw Points. Your balance is ${points}.`); return; }
+        appAlert("Unlock sticker?", `Spend ${sticker.cost} Paw Points to permanently unlock this sticker?`, [
             { text: "Cancel", style: "cancel" },
             { text: "Unlock", onPress: () => { void doPurchase(); } },
         ]);

@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import PawPointsPopup from "@/components/PawPointsPopup";
 import PetHubDrawer from "@/components/PetHubDrawer";
@@ -11,10 +12,10 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi, Pet, Task, HealthRecord } from "@/services/petcardApi";
 import { getPetAvatarSource } from "@/services/petAvatar";
 import { resolveSelectedPet } from "@/services/petSelection";
+import { canOnPet } from "@/services/petPermissions";
 import { petcardTodayKey } from "@/services/petcardApi";
 import {
     Dimensions,
@@ -201,6 +202,7 @@ const [quickH, setQuickH] = useState(s(92));
     const [taskRows, setTaskRows] = useState<HomeTask[]>([]);
     const [dashboardStats, setDashboardStats] = useState<Array<{ key: string; label: string; value: string; total: string; progress: number; icon: any; route: any }>>([...STATS]);
     const [activePetId, setActivePetId] = useState<string | null>(null);
+    const [activePetAccess, setActivePetAccess] = useState<Pet | null>(null);
     const [activePetName, setActivePetName] = useState("your pet");
     const [activePetType, setActivePetType] = useState("dog");
     const [activePetAvatarKey, setActivePetAvatarKey] = useState("");
@@ -270,6 +272,7 @@ useFocusEffect(
                 }
 
                 setActivePetId(pet.id);
+                setActivePetAccess(pet);
                 setActivePetName(pet.name || "your pet");
                 setActivePetType(pet.type || "dog");
                 setActivePetAvatarKey(pet.avatarKey || "");
@@ -398,7 +401,7 @@ setDashboardStats(STATS.map((item) => {
                 );
             } catch (error) {
                 if (alive) {
-                    Alert.alert(
+                    appAlert(
                         "Couldn't load PetCard",
                         error instanceof Error
                             ? error.message
@@ -423,6 +426,7 @@ setDashboardStats(STATS.map((item) => {
     const toggleTask = async (key: string) => {
         const task = taskRows.find((item) => item.key === key);
         if (!task || task.done || !activePetId) return;
+        if (!canOnPet(activePetAccess, "manage_tasks")) { appAlert("View only", "The pet owner has not allowed you to complete tasks for this pet."); return; }
         try {
             const result = await petcardApi.completeTask(activePetId, task.key);
             setTaskRows((prev) => {
@@ -436,7 +440,7 @@ setDashboardStats(STATS.map((item) => {
             const rewardPoints = result.reward?.points ?? 0;
             if (rewardPoints > 0) setReward({ title: task.title, icon: task.icon, points: rewardPoints });
         } catch (error) {
-            Alert.alert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't complete task", error instanceof Error ? error.message : "Please try again.");
         }
     };
 

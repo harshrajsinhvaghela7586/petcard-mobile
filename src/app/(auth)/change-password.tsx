@@ -1,7 +1,7 @@
+import { appAlert } from "@/components/AppDialog";
 import { petcardApi } from "@/services/petcardApi";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Alert,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -337,22 +337,22 @@ export default function ChangePasswordScreen() {
     }
 
     if (!currentPassword) {
-      Alert.alert(t.missingCurrentTitle, t.missingCurrentMessage);
+      appAlert(t.missingCurrentTitle, t.missingCurrentMessage);
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert(t.weakTitle, t.weakMessage);
+      appAlert(t.weakTitle, t.weakMessage);
       return;
     }
 
     if (newPassword === currentPassword) {
-      Alert.alert(t.samePasswordTitle, t.samePasswordMessage);
+      appAlert(t.samePasswordTitle, t.samePasswordMessage);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert(t.mismatchTitle, t.mismatchMessage);
+      appAlert(t.mismatchTitle, t.mismatchMessage);
       return;
     }
 
@@ -361,14 +361,14 @@ export default function ChangePasswordScreen() {
 
       await petcardApi.changePassword(currentPassword, newPassword);
 
-      Alert.alert(t.successTitle, t.successMessage, [
+      appAlert(t.successTitle, t.successMessage, [
         {
           text: t.ok,
           onPress: () => router.back(),
         },
       ]);
     } catch (error) {
-      Alert.alert(
+      appAlert(
         t.failedTitle,
         error instanceof Error ? error.message : t.tryAgain
       );

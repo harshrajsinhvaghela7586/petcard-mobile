@@ -1,7 +1,7 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     Pressable,
     StyleSheet,
@@ -36,20 +36,20 @@ export default function ScanQRScreen() {
 
   const processValue = useCallback(async (value: string) => {
     const parsed = extractQr(value);
-    if (!parsed) { Alert.alert("Invalid PetCard QR", "Please scan a valid PetCard QR code."); setScanned(false); return; }
+    if (!parsed) { appAlert("Invalid PetCard QR", "Please scan a valid PetCard QR code."); setScanned(false); return; }
     setScanned(true);
     if (parsed.mode === "public") {
       /* Your own pet's QR must not open at all. */
       try { await petcardApi.lookupPublicPetQr(parsed.token); }
       catch (error) {
-        if (error instanceof ApiError && error.code === "ALREADY_OWNER") { Alert.alert("This is your own pet", "You can't scan your own pet's QR code. Scan someone else's PetCard QR."); setScanned(false); return; }
-        if (error instanceof ApiError && (error.status === 404 || error.code === "PET_QR_INVALID")) { Alert.alert("Invalid PetCard QR", "This QR code is invalid or expired."); setScanned(false); return; }
+        if (error instanceof ApiError && error.code === "ALREADY_OWNER") { appAlert("This is your own pet", "You can't scan your own pet's QR code. Scan someone else's PetCard QR."); setScanned(false); return; }
+        if (error instanceof ApiError && (error.status === 404 || error.code === "PET_QR_INVALID")) { appAlert("Invalid PetCard QR", "This QR code is invalid or expired."); setScanned(false); return; }
         /* any other error (offline etc.): let the preview screen deal with it */
       }
     }
     if (parsed.mode === "invite") {
       try { await pendingGuardianInvite.save(parsed.token); }
-      catch { Alert.alert("Invite unavailable", "Could not securely save this invite. Please scan again."); setScanned(false); return; }
+      catch { appAlert("Invite unavailable", "Could not securely save this invite. Please scan again."); setScanned(false); return; }
     }
     router.push({ pathname: "/GuardianRequestPreview", params: { token: parsed.token, mode: parsed.mode } } as any);
   }, []);
@@ -65,9 +65,9 @@ export default function ScanQRScreen() {
     setBusy(true);
     try {
       const codes = await Camera.scanFromURLAsync(result.assets[0].uri, ["qr"]);
-      if (!codes.length) { Alert.alert("QR not found", "Select an image that contains a clear PetCard QR code."); return; }
+      if (!codes.length) { appAlert("QR not found", "Select an image that contains a clear PetCard QR code."); return; }
       await processValue(codes[0].data);
-    } catch (error) { Alert.alert("Could not read QR", error instanceof Error ? error.message : "Try another image."); }
+    } catch (error) { appAlert("Could not read QR", error instanceof Error ? error.message : "Try another image."); }
     finally { setBusy(false); }
   };
 

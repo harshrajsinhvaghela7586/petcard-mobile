@@ -1,5 +1,5 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
 import { petcardApi, Pet, HealthRecord } from "@/services/petcardApi";
 import {
     Dimensions,
@@ -23,6 +23,8 @@ import PrimaryButton from "@/components/Button/PrimaryButton";
 import AddHealthRecordSheet, { HealthDraft } from "@/components/AddHealthRecordSheet";
 import NoPetPopup from "@/components/NoPetPopup";
 import { useSelectedPet } from "@/hooks/use-selected-pet";
+import { useRequirePermission } from "@/hooks/use-require-permission";
+import { canOnPet } from "@/services/petPermissions";
 import { router } from "expo-router";
 import BottomNav, { useNavHeight } from "../../components/BottomNav";
 
@@ -119,32 +121,34 @@ export default function HealthRecordsScreen() {
     const [sheet, setSheet] = useState(false);
     const [saving, setSaving] = useState(false);
     const petId = pet?.id;
+    const mayView = useRequirePermission(pet, "view_health", !petLoading);
+    const canManage = canOnPet(pet, "manage_health");
 
     const loadRecords = useCallback(async () => {
-        if (!petId) { setRecords([]); setUpcomingRecords([]); setLoadingRecords(false); return; }
+        if (!petId || !canOnPet(pet, "view_health")) { setRecords([]); setUpcomingRecords([]); setLoadingRecords(false); return; }
         try {
             const [list, upcoming] = await Promise.all([petcardApi.listHealthRecords(petId, undefined, undefined, 50), petcardApi.upcomingHealth(petId)]);
             setRecords(list.records ?? []); setUpcomingRecords(upcoming.records ?? []);
         } catch (error) {
-            Alert.alert("Couldn't load health records", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't load health records", error instanceof Error ? error.message : "Please try again.");
         } finally { setLoadingRecords(false); }
-    }, [petId]);
+    }, [petId, pet]);
 
     useEffect(() => { setLoadingRecords(true); void loadRecords(); }, [loadRecords]);
 
     const saveRecord = async (d: HealthDraft) => {
-        if (!petId || saving) return;
+        if (!petId || saving || !canManage) return;
         setSaving(true);
         try {
             await petcardApi.createHealthRecord(petId, d as Partial<HealthRecord>);
             setSheet(false);
             await loadRecords(); // Home "Upcoming" bhi next focus pe nayi due date dikhayega
         } catch (error) {
-            Alert.alert("Couldn't save record", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Couldn't save record", error instanceof Error ? error.message : "Please try again.");
         } finally { setSaving(false); }
     };
 
-    if (!fontsLoaded) return null;
+    if (!fontsLoaded || !mayView) return null;
 
     const cat = CATS.find((c) => c.key === active) ?? CATS[0];
     const typeKeys: Record<string, string[]> = { vaccination: ["vaccination"], deworming: ["other"], vet: ["vet_visit", "surgery"], meds: ["medication"], weight: ["weight"], allergies: ["allergy", "condition"] };
@@ -232,7 +236,7 @@ export default function HealthRecordsScreen() {
             </ScrollView>
 
             {/* ADD RECORD (nav ke upar) */}
-            <View style={[styles.bottomSection, { bottom: NAV_HEIGHT }]}>
+            {canManage ? <View style={[styles.bottomSection, { bottom: NAV_HEIGHT }]}>
                 <View style={styles.buttonWrapper}>
                     <PrimaryButton
                         title="Add Record"
@@ -247,7 +251,7 @@ export default function HealthRecordsScreen() {
                         }
                     />
                 </View>
-            </View>
+            </View> : null}
 
             <AddHealthRecordSheet visible={sheet} tab={active} saving={saving} onClose={() => setSheet(false)} onSave={saveRecord} />
             <NoPetPopup visible={!petLoading && !hasPet} onLater={() => router.back()} />

@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useState } from "react";
 import {
-    Alert,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -96,10 +96,10 @@ export default function ContactUsScreen() {
                 subject: subject.trim(),
                 message: message.trim(),
             });
-            Alert.alert("Message sent", result.message || "Thanks for reaching out! Our team will get back to you soon.");
+            appAlert("Message sent", result.message || "Thanks for reaching out! Our team will get back to you soon.");
             setName(""); setEmail(""); setSubject(""); setMessage(""); setErrors({});
         } catch (error) {
-            Alert.alert("Message not sent", error instanceof Error ? error.message : "Please check your connection and try again.");
+            appAlert("Message not sent", error instanceof Error ? error.message : "Please check your connection and try again.");
         } finally {
             setSending(false);
         }

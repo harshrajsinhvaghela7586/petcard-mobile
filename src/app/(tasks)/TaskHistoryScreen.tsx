@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/AppDialog";
 import { appLocale } from "@/i18n/autoTranslate";
 import ScreenHeader, {
     C,
@@ -10,7 +11,7 @@ import ScreenHeader, {
 } from "@/components/SectionHeader";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable } from "react-native";
+import { Pressable } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { petcardApi, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
@@ -59,7 +60,7 @@ export default function TaskHistoryScreen() {
             setItems((old) => reset ? mapped : [...old, ...mapped]);
             setCursor(result.nextCursor ?? null);
             setHasMore(Boolean(result.nextCursor));
-        } catch (error) { Alert.alert("Task history unavailable", error instanceof Error ? error.message : "Please try again."); }
+        } catch (error) { appAlert("Task history unavailable", error instanceof Error ? error.message : "Please try again."); }
         finally { setLoading(false); }
     }, [petId, loading]);
 
@@ -72,7 +73,7 @@ export default function TaskHistoryScreen() {
                 if (!active) return;
                 if (!pet?.id) { setPetId(null); setItems([]); return; }
                 setPetId(pet.id);
-            } catch (error) { if (active) Alert.alert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); }
+            } catch (error) { if (active) appAlert("Unable to load pet", error instanceof Error ? error.message : "Please try again."); }
         })();
         return () => { active = false; };
     }, []));

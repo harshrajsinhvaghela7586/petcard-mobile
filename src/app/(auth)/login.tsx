@@ -1,5 +1,5 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useRef, useState } from "react";
-import { Alert } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/services/apiClient";
 import { mobileAuthApi } from "@/services/mobileAuthApi";
@@ -219,9 +219,9 @@ export default function LoginScreen() {
     const handleLogin = async () => {
         const normalizedEmail = email.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-            Alert.alert("Invalid email", "Please enter a valid email address."); return;
+            appAlert("Invalid email", "Please enter a valid email address."); return;
         }
-        if (!password) { Alert.alert("Password required", "Please enter your password."); return; }
+        if (!password) { appAlert("Password required", "Please enter your password."); return; }
         try {
             setLoading(true);
             // Stores the tokens securely. The auth gate in _layout.tsx then opens Home
@@ -229,7 +229,7 @@ export default function LoginScreen() {
             await signIn(normalizedEmail, password);
         } catch (error) {
             if (error instanceof ApiError && error.code === "EMAIL_NOT_VERIFIED") {
-                Alert.alert("Verify your email", error.message, [
+                appAlert("Verify your email", error.message, [
                     { text: "Cancel", style: "cancel" },
                     {
                         text: "Verify",
@@ -245,7 +245,7 @@ export default function LoginScreen() {
                 ]);
                 return;
             }
-            Alert.alert("Login failed", error instanceof Error ? error.message : "Please try again.");
+            appAlert("Login failed", error instanceof Error ? error.message : "Please try again.");
         } finally { setLoading(false); }
     };
 

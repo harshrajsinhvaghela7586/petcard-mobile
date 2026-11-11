@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+import { appAlert } from "@/components/AppDialog";
 import { api } from "./apiClient";
 import { petcardTodayKey } from "./petcardApi";
 
@@ -77,7 +77,7 @@ const tapCounter = (petId: string, kind: "clicks" | "whistles", date: string, la
     api(`${base(petId)}/counters/${COUNTER[kind]}`, { method: "POST", body: { label, count, time, date } });
 
 const fail = (title: string, error: unknown) =>
-    Alert.alert(title, error instanceof Error ? error.message : "Please check your connection and try again.");
+    appAlert(title, error instanceof Error ? error.message : "Please check your connection and try again.");
 
 export const trackerStore = {
     today: petcardTodayKey,

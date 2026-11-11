@@ -2,7 +2,8 @@ import PrimaryButton from "@/components/Button/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
 import { appFlags } from "@/services/appFlags";
 import { petcardApi } from "@/services/petcardApi";
-import { getPetAvatarSource, getPetStickerSource } from "@/services/petAvatar";
+import { petImageSource } from "@/services/stickerImage";
+import { scheduleTaskReminders } from "@/services/taskReminders";
 import { clearPetSetupDraft, readPetSetupDraft, updatePetSetupDraft } from "@/services/petSetupDraft";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -27,9 +28,8 @@ import { useLang } from "@/i18n/LanguageContext";
 
 
 const PAW_WHITE_IMG = require("../../../assets/images/paw-white.png");
-const DEFAULT_PET_IMG = require("../../../assets/images/pets/huchiko.png");
 
-const SCREEN_IMAGES = [PAW_WHITE_IMG, DEFAULT_PET_IMG];
+const SCREEN_IMAGES = [PAW_WHITE_IMG];
 
 const validTaskCategories = new Set(["food", "water", "walk", "play", "grooming", "training", "medication", "vet", "hygiene", "other"]);
 function normalizeTime(value?: string | null): string | null {
@@ -88,7 +88,7 @@ export default function CareSetupCompleteScreen() {
     const [savingPet, setSavingPet] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [petHeroImage, setPetHeroImage] = useState<any>(DEFAULT_PET_IMG);
+    const [petHeroImage, setPetHeroImage] = useState<any>(null);
 
     // Persist the completed onboarding to the server exactly once using a stable idempotency key.
     useEffect(() => {
@@ -97,7 +97,11 @@ export default function CareSetupCompleteScreen() {
           try {
             const draft = await readPetSetupDraft();
             if (!draft.name || !draft.petType) throw new Error("Pet details are missing. Please restart pet setup.");
-            if (alive) setPetName(draft.name);
+            if (alive) {
+              setPetName(draft.name);
+              // Show the chosen sticker straight away (no default dog while the pet is being saved).
+              setPetHeroImage(petImageSource({ type: draft.petType, activeStickerKey: draft.stickerKeys?.find(Boolean) ?? null, avatarKey: draft.avatarKey, avatarLocalId: draft.avatarLocalId }));
+            }
             const idempotencyKey = draft.idempotencyKey ?? `petsetup_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
             // Pet creation normally happens on GeneratingPetIdScreen. This fallback supports old drafts.
             await updatePetSetupDraft({ idempotencyKey });
@@ -121,7 +125,7 @@ export default function CareSetupCompleteScreen() {
             const petId = createdResult.pet.id;
             // Use the API-confirmed pet/avatar/sticker. If the API fails, the original dog fallback stays.
             // Load the confirmed pet picture first, then swap it in, so the picture never pops in half-drawn.
-            const heroSource = getPetStickerSource(createdResult.pet.type, createdResult.pet.stickerKeys?.[0]) ?? getPetAvatarSource(createdResult.pet.type, createdResult.pet.avatarKey, draft.avatarLocalId);
+            const heroSource = petImageSource({ type: createdResult.pet.type, activeStickerKey: createdResult.pet.activeStickerKey ?? createdResult.pet.stickerKeys?.[0], avatarKey: createdResult.pet.avatarKey, avatarLocalId: draft.avatarLocalId ?? createdResult.pet.avatarLocalId });
             await preloadImages([typeof heroSource === "number" ? heroSource : undefined]);
             if (alive) setPetHeroImage(heroSource);
             if (petId && (draft.initialTasks?.length ?? 0) > 1) {
@@ -134,6 +138,13 @@ export default function CareSetupCompleteScreen() {
                 await petcardApi.createTask(petId, { title: task.title, category: validTaskCategories.has(task.category) ? task.category : "other", timeOfDay: normalizeTime(task.timeOfDay), recurrence: { type: "daily", startDate } });
               }
             }
+            // Alarms for every setup task that has a time (the first task is created by the server together with the pet).
+            try {
+              const all = await petcardApi.listAllTasks(petId);
+              for (const task of all.tasks ?? []) {
+                if (task.timeOfDay && task.recurrence) await scheduleTaskReminders(task, { minutesBefore: 10, petName: createdResult.pet.name });
+              }
+            } catch { /* alarms are a bonus: never fail the pet setup because of them */ }
             await clearPetSetupDraft();
             if (user?.id) await appFlags.setSetupDone(user.id);
           } catch (error) {
@@ -204,11 +215,13 @@ export default function CareSetupCompleteScreen() {
                         <MaterialCommunityIcons name="paw" size={s(18)} color={C.orange} />
                     </View>
 
-                    <Image
-                        source={petHeroImage}
-                        resizeMode="contain"
-                        style={styles.pet}
-                    />
+                    {petHeroImage ? (
+                        <Image
+                            source={petHeroImage}
+                            resizeMode="contain"
+                            style={styles.pet}
+                        />
+                    ) : null}
 
                     <MaterialCommunityIcons name="tennis-ball" size={s(46)} color="#3B8FD6" style={styles.ball} />
                     <MaterialCommunityIcons name="bone" size={s(40)} color="#3B6FB6" style={styles.rope} />

@@ -1,7 +1,7 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   Image,
   Linking,
@@ -305,7 +305,7 @@ export default function GuardianRequestPreview() {
         }
       } catch (error) {
         if (!inviteMode && error instanceof ApiError && error.code === "ALREADY_OWNER") {
-          if (alive) Alert.alert("This is your own pet", "You can't open your own pet's QR code as a scan.", [{ text: "OK", onPress: () => router.back() }]);
+          if (alive) appAlert("This is your own pet", "You can't open your own pet's QR code as a scan.", [{ text: "OK", onPress: () => router.back() }]);
           return;
         }
         if (inviteMode && error instanceof ApiError && (error.code === "ALREADY_OWNER" || error.code === "ALREADY_MEMBER")) {
@@ -314,7 +314,7 @@ export default function GuardianRequestPreview() {
           return;
         }
         if (inviteMode && error instanceof ApiError && error.code === "INVITE_INVALID") await pendingGuardianInvite.clear();
-        if (alive) Alert.alert("PetCard invite unavailable", error instanceof Error ? error.message : "This QR code is invalid or expired.", [{ text: "OK", onPress: () => router.back() }]);
+        if (alive) appAlert("PetCard invite unavailable", error instanceof Error ? error.message : "This QR code is invalid or expired.", [{ text: "OK", onPress: () => router.back() }]);
       } finally { if (alive) setLoading(false); }
     })();
     return () => { alive = false; };
@@ -344,22 +344,22 @@ export default function GuardianRequestPreview() {
         const next: ContactStatus = res?.status === "approved" ? "approved" : "pending";
         setContactStatus(next);
         if (next === "approved") setReloadKey((k) => k + 1);
-        else if (res?.created === false) Alert.alert("Already requested", "Your request is already waiting for the pet parent.");
-        else Alert.alert("Request sent", "The pet parent has been notified by app notification and email. Their details will appear here only if they approve.");
+        else if (res?.created === false) appAlert("Already requested", "Your request is already waiting for the pet parent.");
+        else appAlert("Request sent", "The pet parent has been notified by app notification and email. Their details will appear here only if they approve.");
         return;
       }
       await petcardApi.redeemGuardianInvite(token);
       await pendingGuardianInvite.clear();
-      Alert.alert("Request sent", "The pet owner has been notified. Guardian access will be granted only after the owner approves your request.", [{ text: "OK", onPress: () => router.replace("/HomeScreen" as any) }]);
+      appAlert("Request sent", "The pet owner has been notified. Guardian access will be granted only after the owner approves your request.", [{ text: "OK", onPress: () => router.replace("/HomeScreen" as any) }]);
     } catch (error) {
       if (error instanceof ApiError && error.code === "GUARDIAN_LIMIT") {
-        Alert.alert("Guardian limit reached", "This pet already has the maximum of 2 co-guardians. Please ask the owner to free up a spot.");
+        appAlert("Guardian limit reached", "This pet already has the maximum of 2 co-guardians. Please ask the owner to free up a spot.");
       } else if (error instanceof ApiError && error.code === "CONTACT_REQUEST_COOLDOWN") {
         const at = (error.data as any)?.retryAt as string | undefined;
         if (at) setNextRequestAt(at);
-        Alert.alert("Please wait", at ? `You can send only one request every 24 hours. Try again after ${new Date(at).toLocaleString()}.` : error.message);
+        appAlert("Please wait", at ? `You can send only one request every 24 hours. Try again after ${new Date(at).toLocaleString()}.` : error.message);
       } else {
-        Alert.alert("Could not send request", error instanceof Error ? error.message : "Please try again.");
+        appAlert("Could not send request", error instanceof Error ? error.message : "Please try again.");
       }
     } finally { setSubmitting(false); }
   };

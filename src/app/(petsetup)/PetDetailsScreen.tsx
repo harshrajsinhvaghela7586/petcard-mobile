@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useRef, useState } from "react";
 import {
-    Alert,
     Dimensions,
     Image,
     Keyboard,
@@ -412,7 +412,7 @@ export default function PetDetailsScreen() {
             : gender !== "male" && gender !== "female" ? `Please select your ${label}'s gender`
             : null;
         if (problem) {
-            Alert.alert("Details missing", problem);
+            appAlert("Details missing", problem);
             return;
         }
         const toKey = (d: Date) =>

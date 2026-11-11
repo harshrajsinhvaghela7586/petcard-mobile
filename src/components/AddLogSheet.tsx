@@ -1,6 +1,6 @@
+import { appAlert } from "@/components/AppDialog";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -93,8 +93,8 @@ export default function AddLogSheet(p: Props) {
                     <PrimaryButton
                         title="Add"
                         onPress={() => {
-                            if (p.nameLabel && !label.trim()) { Alert.alert("Details missing", `Please write the ${p.nameLabel.toLowerCase()}`); return; }
-                            if (!(amount > 0)) { Alert.alert("Details missing", "Please enter an amount greater than 0"); return; }
+                            if (p.nameLabel && !label.trim()) { appAlert("Details missing", `Please write the ${p.nameLabel.toLowerCase()}`); return; }
+                            if (!(amount > 0)) { appAlert("Details missing", "Please enter an amount greater than 0"); return; }
                             p.onSave({ label: p.nameLabel ? label.trim() : undefined, amount, time: formatTime(time.h12, time.minute, time.meridiem) });
                         }}
                         style={{ alignSelf: "stretch", marginTop: s(10) }}
