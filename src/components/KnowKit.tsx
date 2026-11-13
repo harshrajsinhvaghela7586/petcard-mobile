@@ -10,7 +10,7 @@ import {
     View,
     ViewStyle
 } from "react-native";
-import { TranslatedText as Text } from "@/i18n/TranslatedText";
+import { TranslatedText as Text, TranslatedNameText as NameText } from "@/i18n/TranslatedText";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
@@ -25,6 +25,7 @@ import { petcardApi, type Pet } from "@/services/petcardApi";
 import { resolveSelectedPet } from "@/services/petSelection";
 import { getPetAvatarSource } from "@/services/petAvatar";
 import { stickerImage } from "@/services/stickerImage";
+import { setTranslationPetName } from "@/i18n/autoTranslate";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -101,6 +102,8 @@ export function KnowFrame({
         Nunito_700Bold,
     });
     const activePet = useLoadKnowPet();
+    /* Every Know page (menu pages too, not only guides) needs the pet's name for sentence lookups. */
+    if (activePet?.name) setTranslationPetName(activePet.name);
     if (!fontsLoaded) return null;
 
     const goBack = () => {
@@ -206,7 +209,6 @@ export function ListRow({
     last?: boolean;
 }) {
     const pet = useKnowPet();
-    const petName = pet?.name || "your pet";
     return (
         <Pressable
             onPress={() => router.push(item.route as any)}
@@ -220,12 +222,9 @@ export function ListRow({
             </View>
 
             <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle} maxFontSizeMultiplier={1.1} numberOfLines={1}>
-                    {item.title.replace(/Milo/g, petName)}
-                </Text>
-                <Text style={styles.rowSub} maxFontSizeMultiplier={1.1} numberOfLines={2}>
-                    {item.sub.replace(/Milo/g, petName)}
-                </Text>
+                {/* Sentences are looked up with the sample name "Milo" and the real name is put back after translating. */}
+                <NameText style={styles.rowTitle} maxFontSizeMultiplier={1.1} numberOfLines={1} template={item.title} name={pet?.name} />
+                <NameText style={styles.rowSub} maxFontSizeMultiplier={1.1} numberOfLines={2} template={item.sub} name={pet?.name} />
             </View>
 
             <Ionicons name="chevron-forward" size={s(18)} color={C.brown} />
@@ -248,16 +247,11 @@ export function ListCard({
     items: readonly KnowItem[];
 }) {
     const pet = useKnowPet();
-    const petName = pet?.name || "your pet";
     return (
         <View style={[styles.card, styles.listCard]}>
-            <Text style={[styles.cardHeading, { color: headingColor }]} maxFontSizeMultiplier={1.1}>
-                {heading}
-            </Text>
+            <NameText style={[styles.cardHeading, { color: headingColor }]} maxFontSizeMultiplier={1.1} template={heading} name={pet?.name} />
             {sub ? (
-                <Text style={styles.cardSub} maxFontSizeMultiplier={1.1}>
-                    {sub}
-                </Text>
+                <NameText style={styles.cardSub} maxFontSizeMultiplier={1.1} template={sub} name={pet?.name} />
             ) : null}
 
             <View style={{ marginTop: s(6) }}>
@@ -282,15 +276,10 @@ export function TipCard({
     titleColor?: string;
 }) {
     const pet = useKnowPet();
-    const petName = pet?.name || "your pet";
     return (
         <View style={[styles.card, styles.tipCard]}>
-            <Text style={[styles.tipTitle, { color: titleColor }]} maxFontSizeMultiplier={1.1}>
-                {title}
-            </Text>
-            <Text style={styles.tipText} maxFontSizeMultiplier={1.1}>
-                {text}
-            </Text>
+            <NameText style={[styles.tipTitle, { color: titleColor }]} maxFontSizeMultiplier={1.1} template={title} name={pet?.name} />
+            <NameText style={styles.tipText} maxFontSizeMultiplier={1.1} template={text} name={pet?.name} />
         </View>
     );
 }

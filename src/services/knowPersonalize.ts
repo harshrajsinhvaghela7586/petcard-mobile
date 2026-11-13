@@ -1,5 +1,5 @@
 import type { Pet } from "./petcardApi";
-import { BREED_TRAITS, TYPE_PROFILES, supportedBreedMatch } from "@/constants/knowProfiles";
+import { BREED_LABELS, BREED_TRAITS, TYPE_PROFILES, supportedBreedMatch } from "@/constants/knowProfiles";
 import type { Fact } from "@/components/KnowGuide";
 
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
@@ -43,7 +43,7 @@ export function makePersonalizer(pet: Pet | null) {
         const who = `Your ${TYPE_PROFILES[type] ? prof.word : "pet"}`;
         const facts: Fact[] = trait
             ? [
-                { label: "Breed", value: breed, icon: "paw" },
+                { label: "Breed", value: (matchKey && BREED_LABELS[matchKey]) || breed, icon: "paw" },
                 { label: "Energy", value: trait.energy, icon: "lightning-bolt-outline" },
                 { label: "Grooming", value: trait.grooming, icon: "brush" },
                 { label: "Vet visit", value: "Yearly check-up", icon: "stethoscope" },
@@ -52,7 +52,8 @@ export function makePersonalizer(pet: Pet | null) {
         return {
             type: "about" as const,
             heading: `Tailored for ${name}`,
-            body: trait ? `${breed}: ${trait.note} ${prof.about}` : `${who} · ${prof.about}`,
+            /* Built from fixed parts (not one joined sentence) so every part has its own translation. */
+            body: trait && matchKey ? [BREED_LABELS[matchKey] ?? breed, ": ", trait.note, " ", prof.about] : [who, " · ", prof.about],
             facts,
         };
     };

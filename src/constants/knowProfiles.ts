@@ -55,6 +55,17 @@ const SUPPORTED_BREEDS: { type: string; match: string; names: string[] }[] = [
     { type: "rabbit", match: "newzealand bunny", names: ["newzealand bunny", "new zealand bunny", "new zealand", "new zealand rabbit", "newzealand", "newzealand rabbit", "nz bunny", "nz white"] },
 ];
 
+/* Fixed display names of the supported breeds (the typed spelling can vary, so the text never depends on it). */
+export const BREED_LABELS: Record<string, string> = {
+    "hungarian vizsla": "Hungarian Vizsla",
+    "border collie": "Border Collie",
+    "japanese akita": "Japanese Akita",
+    "persian": "Persian",
+    "himalayan": "Himalayan",
+    "holland lop": "Holland Lop",
+    "newzealand bunny": "New Zealand Bunny",
+};
+
 const norm = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 /** Returns the BREED_TRAITS `match` key when the typed breed is one of the 7 supported breeds of this pet type, else null. */

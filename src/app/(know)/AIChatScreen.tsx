@@ -6,10 +6,12 @@ import {
     Platform,
     Pressable,
     StyleSheet,
-    Text,
-    TextInput,
+    Text as RawText,
     View,
 } from "react-native";
+/* Fixed labels are translated; the user's own messages and the AI's replies are shown exactly as they are. */
+import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
+import { setTranslationPetName, tr } from "@/i18n/autoTranslate";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Fredoka_600SemiBold } from "@expo-google-fonts/fredoka";
@@ -21,7 +23,8 @@ import { petcardApi } from "@/services/petcardApi";
 import BottomNav, { useNavHeight } from "../../components/BottomNav";
 import { C, s, SIDE } from "../../components/KnowKit";
 
-type Msg = { id: string; from: "bot" | "user"; text: string };
+/* fixed: app-written text (welcome, error), translated on screen. Otherwise typed by the user or written by the AI. */
+type Msg = { id: string; from: "bot" | "user"; text: string; fixed?: boolean };
 
 const suggestionsFor = (name: string) => [
     `How much should I feed ${name}?`,
@@ -37,10 +40,11 @@ export default function AiChatScreen() {
 
     const { pet, hasPet, loading: petLoading } = useSelectedPet();
     const PET_NAME = pet?.name || "your pet";
+    if (pet?.name) setTranslationPetName(pet.name);
     const [messages, setMessages] = useState<Msg[]>([]);
     /* Welcome message selected pet ke naam ke saath; pet badle to chat reset */
     useEffect(() => {
-        setMessages([{ id: "welcome", from: "bot", text: `Hi! I'm PawChat AI 🐾 Ask me about ${PET_NAME}'s food, health, training or care!` }]);
+        setMessages([{ id: "welcome", from: "bot", fixed: true, text: `Hi! I'm PawChat AI 🐾 Ask me about ${PET_NAME}'s food, health, training or care!` }]);
     }, [pet?.id, PET_NAME]);
     const [input, setInput] = useState("");
     const [typing, setTyping] = useState(false);
@@ -92,7 +96,7 @@ export default function AiChatScreen() {
         } catch {
             setMessages((p) => [
                 ...p,
-                { id: `e${Date.now()}`, from: "bot", text: "Sorry, I can't reach PawChat right now. Please check your connection and try again. 🐾" },
+                { id: `e${Date.now()}`, from: "bot", fixed: true, text: "Sorry, I can't reach PawChat right now. Please check your connection and try again. 🐾" },
             ]);
         } finally {
             setTyping(false);
@@ -168,7 +172,7 @@ export default function AiChatScreen() {
                                     </Text>
                                     <View style={styles.chips}>
                                         {suggestionsFor(PET_NAME).map((q) => (
-                                            <Pressable key={q} style={styles.chip} onPress={() => send(q)}>
+                                            <Pressable key={q} style={styles.chip} onPress={() => send(tr(q))}>
                                                 <Text style={styles.chipText} maxFontSizeMultiplier={1.1}>
                                                     {q}
                                                 </Text>
@@ -221,13 +225,14 @@ function BotAvatar() {
 }
 
 function Bubble({ msg }: { msg: Msg }) {
+    const BodyText: React.ElementType = msg.fixed ? Text : RawText;
     if (msg.from === "user") {
         return (
             <View style={styles.userRow}>
                 <View style={[styles.bubble, styles.userBubble]}>
-                    <Text style={styles.userText} maxFontSizeMultiplier={1.1}>
+                    <BodyText style={styles.userText} maxFontSizeMultiplier={1.1}>
                         {msg.text}
-                    </Text>
+                    </BodyText>
                 </View>
             </View>
         );
@@ -236,9 +241,9 @@ function Bubble({ msg }: { msg: Msg }) {
         <View style={styles.botRow}>
             <BotAvatar />
             <View style={[styles.bubble, styles.botBubble]}>
-                <Text style={styles.botText} maxFontSizeMultiplier={1.1}>
+                <BodyText style={styles.botText} maxFontSizeMultiplier={1.1}>
                     {msg.text}
-                </Text>
+                </BodyText>
             </View>
         </View>
     );

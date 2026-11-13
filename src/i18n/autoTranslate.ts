@@ -176,8 +176,25 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let busy = false;
 
 /* The pet's name is replaced by the guide text's sample name ("Milo") for lookups, then put back. */
+const SAMPLE_NAME = "Milo";
+/* The AI sometimes writes the sample name in the target script (e.g. Hindi "मिलो"). All of these are turned back into the real name. */
+const SAMPLE_RE = /Milo|मिलो|माइलो|मीलो|मिलॉ/g;
 let petName = "";
-export const setTranslationPetName = (name: string) => { petName = name && name !== "your pet" ? name : ""; };
+let petNameRe: RegExp | null = null;
+const escapeRe = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const setTranslationPetName = (name: string) => {
+  const next = name && name !== "your pet" ? name : "";
+  if (next === petName) return;
+  petName = next;
+  /* Whole-word match only: a pet called "Mo" or "Max" must not damage words such as "More" or "Maximum". */
+  /* "\\p" must be double-escaped inside a template string, otherwise it silently becomes the plain letter "p". */
+  petNameRe = next ? new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(next)}(?![\\p{L}\\p{N}])`, "gu") : null;
+  /* Text already on screen was translated with the old name: ask every TranslatedText to redo it (not during render). */
+  queueMicrotask(bump);
+};
+/** Replaces the sample name in a translated sentence with the real pet name. */
+const withRealName = (text: string, name = petName) => (name ? text.replace(SAMPLE_RE, () => name) : text);
+export const useAutoTranslateVersion = () => useSyncExternalStore(subscribeAutoTranslate, getAutoTranslateVersion, getAutoTranslateVersion);
 
 const LOCALES: Record<TLang, string> = { en: "en-US", hi: "hi-IN", es: "es-ES", fr: "fr-FR", de: "de-DE", nl: "nl-NL", it: "it-IT" };
 /** Locale for dates and numbers, following the app language instead of the phone's. */
@@ -211,6 +228,7 @@ export const setAutoTranslateLang = (l: TLang) => {
 /** Translate short labels as well as full sentences; skip only numbers, symbols, emails and URLs. */
 const worthTranslating = (t: string) =>
   t.length >= 1 && t.length <= 600 && /\p{L}/u.test(t) &&
+  /[A-Za-z]/.test(t) && // the app's source text is English: Hindi/Devanagari text (AI replies, typed names) never needs a request
   !/@|https?:\/\//.test(t) && !/^[\d\s.,:;/+%()-]+$/.test(t);
 
 function queue(text: string) {
@@ -277,21 +295,22 @@ export function retryDeferredTranslations() {
   if (pending.size && !timer) timer = setTimeout(flush, 50);
 }
 
-const SAMPLE_NAME = "Milo";
 export function tr(text: string): string {
   if (current === "en") return text;
   const key = text.trim();
   const fixed = MAP.get(key)?.[idx(current)];
-  if (fixed) return text.replace(key, fixed);
+  /* Function replacers: a translation containing "$&" or "$1" must never be treated as a replace pattern. */
+  if (fixed) return text.replace(key, () => fixed);
   const store = remote.get(current);
   const spaced = key.replace(/\s+/g, " ");
   const hit = store?.get(key) ?? store?.get(spaced);
-  if (hit) return text.replace(key, hit);
+  if (hit) return text.replace(key, () => hit);
   // Guide pages are written for "Milo" and personalised afterwards: look the sentence up with the sample name.
-  if (petName && key.includes(petName)) {
-    const generic = spaced.split(petName).join(SAMPLE_NAME);
+  const generic = petNameRe ? spaced.replace(petNameRe, `$1${SAMPLE_NAME}`) : spaced;
+  const usesName = generic !== spaced;
+  if (usesName) {
     const g = store?.get(generic);
-    if (g) return text.replace(key, g.split(SAMPLE_NAME).join(petName));
+    if (g) return text.replace(key, () => withRealName(g));
   }
   // Dates and short phrases made only of dictionary words and numbers ("03 Nov 2026", "November 2026").
   if (/\s/.test(key) && key.length < 40) {
@@ -300,8 +319,18 @@ export function tr(text: string): string {
       return text.replace(/\p{L}+/gu, (w) => MAP.get(w)![idx(current)] ?? w);
     }
   }
-  if (key) queue(key);
+  // Ask for the sample-name version, so one stored sentence serves every pet name.
+  if (key) queue(usesName ? generic : key);
   return text;
+}
+
+/**
+ * Translates a sentence written with the sample name ("Milo") and puts `name` in its place.
+ * Use it when the name shown differs from the pet's stored name (e.g. shortened to fit), or when the
+ * sentence is built from parts. Without a name, pass the sentence written with "your pet" instead.
+ */
+export function trName(template: string, name: string): string {
+  return withRealName(tr(template), name);
 }
 let installed = false;
 /** Install only Alert translation. Text/TextInput are handled by explicit wrappers on every route. */

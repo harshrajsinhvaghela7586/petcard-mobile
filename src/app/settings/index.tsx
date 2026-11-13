@@ -46,7 +46,6 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
         rows: [
             { key: "reminders", title: "Reminders & Alerts", icon: "bell-outline",route:"settings/RemindersAlertsScreen" },
             { key: "language", title: "App Language", icon: "web" },
-            { key: "theme", title: "Theme", icon: "palette-outline", value: "Light" },
             { key: "notif", title: "Notification Settings", icon: "bell-ring-outline", route: "/notifications" },
         ],
     },

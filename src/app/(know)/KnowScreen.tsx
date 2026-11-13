@@ -16,7 +16,8 @@ import {
     StyleSheet,
     View
 } from "react-native";
-import { TranslatedText as Text, TranslatedTextInput as TextInput } from "@/i18n/TranslatedText";
+import { TranslatedText as Text, TranslatedTextInput as TextInput, TranslatedNameText } from "@/i18n/TranslatedText";
+import { setTranslationPetName, tr, useAutoTranslateVersion } from "@/i18n/autoTranslate";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -183,7 +184,13 @@ export default function KnowScreen() {
     );
 
     const [fontsLoaded] = useFonts({ Fredoka_600SemiBold, Nunito_600SemiBold, Nunito_700Bold });
+    /* Sentences with the pet's name are looked up with the sample name "Milo"; re-render when new translations arrive. */
+    if (activePet?.name) setTranslationPetName(activePet.name);
+    useAutoTranslateVersion();
     if (!fontsLoaded) return null;
+
+    /* Name as shown on this screen (shortened to fit); empty when there is no pet yet. */
+    const shownName = activePet?.name ? (activePet.name.length > 10 ? `${activePet.name.slice(0, 10)}…` : activePet.name) : "";
 
     const open = (route: string) => router.push(route as any);
 
@@ -242,9 +249,12 @@ export default function KnowScreen() {
                 <View style={styles.hero}>
                     <View style={styles.heroText}>
                         <Text style={styles.heroTitle} maxFontSizeMultiplier={1.1}>Know Your Pet</Text>
-                        <Text style={styles.heroSub} maxFontSizeMultiplier={1.1}>
-                            Everything you need to keep {activePet?.name ? (activePet.name.length > 10 ? `${activePet.name.slice(0, 10)}…` : activePet.name) : "your pet"} happy & healthy! 
-                        </Text>
+                        <TranslatedNameText
+                            style={styles.heroSub}
+                            maxFontSizeMultiplier={1.1}
+                            template={shownName ? "Everything you need to keep Milo happy & healthy!" : "Everything you need to keep your pet happy & healthy!"}
+                            name={shownName}
+                        />
                     </View>
 
                     <View style={styles.heroDecor}>
@@ -274,9 +284,11 @@ export default function KnowScreen() {
 
                 {/* CATEGORY GRID */}
                 <View style={styles.grid}>
-                    {CATEGORIES.filter((c) =>
-                        c.title.toLowerCase().includes(query.trim().toLowerCase())
-                    ).map((c) => (
+                    {CATEGORIES.filter((c) => {
+                        /* Search works in English and in the chosen language. */
+                        const q = query.trim().toLowerCase();
+                        return c.title.toLowerCase().includes(q) || tr(c.title).toLowerCase().includes(q);
+                    }).map((c) => (
                         <Pressable
                             key={c.key}
                             onPress={() => open(c.route)}
@@ -296,9 +308,13 @@ export default function KnowScreen() {
                                 <Text style={styles.catTitle} maxFontSizeMultiplier={1.1} numberOfLines={2}>
                                     {c.title}
                                 </Text>
-                                <Text style={styles.catSub} maxFontSizeMultiplier={1.1} numberOfLines={3}>
-                                    {c.sub.replace(/Milo/g, activePet?.name ? (activePet.name.length > 10 ? `${activePet.name.slice(0, 10)}…` : activePet.name) : "your pet")}
-                                </Text>
+                                <TranslatedNameText
+                                    style={styles.catSub}
+                                    maxFontSizeMultiplier={1.1}
+                                    numberOfLines={3}
+                                    template={shownName ? c.sub : c.sub.replace(/Milo/g, "your pet")}
+                                    name={shownName}
+                                />
                             </View>
 
                             <Ionicons name="chevron-forward" size={s(15)} color={C.brown} />

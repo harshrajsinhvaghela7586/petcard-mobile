@@ -4,7 +4,7 @@ import {
     StyleSheet,
     View
 } from "react-native";
-import { TranslatedText as Text } from "@/i18n/TranslatedText";
+import { TranslatedText as Text, TranslatedNameText as NameText } from "@/i18n/TranslatedText";
 import PrimaryButton from "@/components/Button/PrimaryButton";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -21,7 +21,8 @@ export type Step = { tag: string; title: string; text?: string };
 
 export type Section =
     /* heading + paragraph + (optional) 2x2 facts grid  — Breed page jaisa */
-    | { type: "about"; heading: string; body: string; facts?: Fact[] }
+    /* body may be a list of parts: each part is translated on its own (used for the "Tailored for" card) */
+    | { type: "about"; heading: string; body: string | string[]; facts?: Fact[] }
     /* icon wali list. tone: good (green) / warn (orange) / danger (red) */
     | { type: "list"; heading: string; intro?: string; items: Item[]; tone?: "good" | "warn" | "danger" }
     /* vertical timeline (age / steps) */
@@ -80,8 +81,7 @@ function useServerGuide(pet: { id?: string; type?: string; breed?: string } | nu
 export default function KnowGuide({ title, chip, sections, footer = DEFAULT_FOOTER, pageKey }: Props) {
     const pet = useLoadKnowPet();
     const p = makePersonalizer(pet);
-    const petName = p.name;
-    setTranslationPetName(petName);
+    if (pet?.name) setTranslationPetName(pet.name);
     const guide = useServerGuide(pet, pageKey ?? pageKeyOf(title));
     /* Server guide: already written for this pet's type, breed and name. Otherwise the built-in text, personalised on the device. */
     const content = (guide
@@ -215,7 +215,7 @@ export default function KnowGuide({ title, chip, sections, footer = DEFAULT_FOOT
             })}
 
             {footerText ? (
-                <Text style={styles.footer} maxFontSizeMultiplier={1.1}>{footerText.replace(/Milo/g, petName)}</Text>
+                <NameText style={styles.footer} maxFontSizeMultiplier={1.1} template={footerText} name={pet?.name} />
             ) : null}
         </KnowFrame>
     );

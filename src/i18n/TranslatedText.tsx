@@ -1,7 +1,7 @@
 import React, { forwardRef, useMemo, useSyncExternalStore } from "react";
 import { Text as NativeText, TextInput as NativeTextInput, type TextProps, type TextInputProps } from "react-native";
 import { useLang } from "./LanguageContext";
-import { tr, subscribeAutoTranslate, getAutoTranslateVersion } from "./autoTranslate";
+import { tr, trName, subscribeAutoTranslate, getAutoTranslateVersion } from "./autoTranslate";
 
 function translateNode(node: React.ReactNode): React.ReactNode {
   if (typeof node === "string") return tr(node);
@@ -54,4 +54,26 @@ export const TranslatedTextInput = forwardRef<NativeTextInput, TextInputProps>(f
     accessibilityHint: props.accessibilityHint ? tr(props.accessibilityHint) : props.accessibilityHint,
   }), [props, lang, translationVersion]);
   return <NativeTextInput ref={ref} {...translatedProps} placeholder={translatedPlaceholder} />;
+});
+
+/**
+ * A sentence that contains the pet's name. `template` is written with the sample name ("Milo"), exactly like the
+ * guide texts, so one translated sentence serves every pet. When there is no pet name, pass the plain
+ * "your pet" sentence as `template` and leave `name` empty.
+ */
+export const TranslatedNameText = forwardRef<NativeText, TextProps & { template: string; name?: string }>(function TranslatedNameText(
+  { template, name, ...props }, ref
+) {
+  const { lang } = useLang();
+  const translationVersion = useSyncExternalStore(
+    subscribeAutoTranslate,
+    getAutoTranslateVersion,
+    getAutoTranslateVersion
+  );
+  const text = useMemo(
+    /* No pet name yet: use the "your pet" twin of the sentence (it is translated too). */
+    () => (name ? trName(template, name) : tr(template.replace(/\bMilo\b/g, "your pet"))),
+    [template, name, lang, translationVersion]
+  );
+  return <NativeText ref={ref} {...props}>{text}</NativeText>;
 });

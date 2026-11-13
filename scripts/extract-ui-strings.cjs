@@ -1,13 +1,17 @@
 // Extracts user-visible English strings from the app into backend/data/ui-strings.json.
 //   node scripts/extract-ui-strings.cjs        (run from the frontend folder)
 // Then in the backend:  npm run seed:translations
+//
+// Strings that cannot be read from the code (built with ${...}) are listed in scripts/extra-ui-strings.json.
+// Sentences with the sample pet name "Milo" also get a "your pet" twin, used when no pet is selected.
+// The existing output file is kept and extended, so strings already translated are never dropped.
 const ts = require("typescript");
 const fs = require("fs"), path = require("path");
 const root = process.argv[2] || path.join(__dirname, "..", "src");
 const outFile = process.argv[3] || path.join(__dirname, "..", "..", "backend", "data", "ui-strings.json");
 const files = [];
 (function walk(d){ for (const f of fs.readdirSync(d,{withFileTypes:true})) { const p=path.join(d,f.name); if(f.isDirectory()) walk(p); else if(/\.tsx?$/.test(f.name)) files.push(p);} })(root);
-const KEYS = new Set(["title","sub","subtitle","label","text","heading","body","value","tag","desc","description","placeholder","message","name","chip","hint","cta","tagline","caption","intro","headline","note","tip","question","answer","emoji_label","button","action","msg","error","success","header","subheading","unit","empty"]);
+const KEYS = new Set(["title","sub","subtitle","label","text","heading","body","value","tag","desc","description","placeholder","message","name","chip","hint","cta","tagline","caption","intro","headline","note","tip","question","answer","emoji_label","button","action","msg","error","success","header","subheading","unit","empty","about","energy","grooming"]);
 const out = new Map(); // text -> files
 const add=(t,f)=>{ t=t.replace(/\s+/g," ").trim(); if(!t) return; if(!out.has(t)) out.set(t,new Set()); out.get(t).add(path.relative(root,f)); };
 const worth = (t)=> /\p{L}/u.test(t) && !/^[\w./-]+$/.test(t) || /\s/.test(t) ;
@@ -26,5 +30,10 @@ for (const f of files) {
     ts.forEachChild(n,visit);
   })(sf);
 }
-fs.writeFileSync(outFile, JSON.stringify([...out.keys()].sort(), null, 1));
-console.log("unique strings:", out.size);
+const extraFile = path.join(__dirname, "extra-ui-strings.json");
+if (fs.existsSync(extraFile)) for (const t of JSON.parse(fs.readFileSync(extraFile, "utf8"))) add(t, extraFile);
+const keep = new Set(out.keys());
+for (const t of [...keep]) if (/\bMilo\b/.test(t)) keep.add(t.replace(/\bMilo\b/g, "your pet"));
+if (fs.existsSync(outFile)) for (const t of JSON.parse(fs.readFileSync(outFile, "utf8"))) keep.add(t);
+fs.writeFileSync(outFile, JSON.stringify([...keep].sort(), null, 1));
+console.log("unique strings:", keep.size, "(found in code:", out.size + ")");
